@@ -7,8 +7,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 
-# Import admin customization
-from smart_pg import admin as admin_config
+# Import admin customization (just to apply it, not to use)
+from smart_pg import admin as admin_customization  # noqa: F401
 
 # Import health check URLs
 from common.health import get_health_urls
@@ -33,4 +33,3 @@ urlpatterns += get_health_urls()
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
