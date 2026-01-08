@@ -70,6 +70,7 @@ logs/
 htmlcov/
 .pytest_cache/
 .tox/
+tests/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -90,3 +91,22 @@ nginx/ssl/*.pem
 nginx/ssl/*.key
 nginx/ssl/*.crt
 !nginx/ssl/.gitkeep
+
+# Documentation (except README)
+*.md
+!README.md
+
+# Docker (optional - not needed for Render)
+Dockerfile
+docker-compose.yml
+docker-compose*.yml
+nginx/
+
+# Production config files
+gunicorn.conf.py
+env.example
+
+# Test files
+run_tests.py
+test_*.py
+*_test.py
