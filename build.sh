@@ -23,9 +23,30 @@ python manage.py migrate
 echo "👤 Creating superuser if not exists..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
+from accounts.models import Account
+
 User = get_user_model()
+
+# Check if admin user exists
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@propertynest.com', 'Admin@123456')
+    # Create account for admin first
+    admin_account, created = Account.objects.get_or_create(
+        name='PropertyNest Admin',
+        defaults={'plan': 'FREE', 'phone': ''}
+    )
+    
+    # Create superuser manually with account
+    user = User(
+        username='admin',
+        email='admin@propertynest.com',
+        is_staff=True,
+        is_superuser=True,
+        is_active=True,
+        account=admin_account,
+        role='OWNER'
+    )
+    user.set_password('Admin@123456')
+    user.save()
     print('Superuser created: admin / Admin@123456')
 else:
     print('Superuser already exists')
