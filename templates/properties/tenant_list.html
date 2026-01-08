@@ -1,0 +1,819 @@
+{% extends 'base.html' %}
+
+{% block title %}Residents - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    
+    .stat-mini {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: var(--transition);
+    }
+    
+    .stat-mini:hover {
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stat-mini-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .stat-mini-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .stat-mini-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    
+    /* Filter Tabs */
+    .filter-tabs {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .filter-tabs .nav-pills {
+        gap: 0.25rem;
+    }
+    
+    .filter-tabs .nav-link {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        transition: var(--transition);
+    }
+    
+    .filter-tabs .nav-link:hover {
+        background: var(--background);
+    }
+    
+    .filter-tabs .nav-link.active {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .filter-tabs .nav-link .badge {
+        font-size: 0.65rem;
+        margin-left: 0.25rem;
+    }
+    
+    /* Search Box */
+    .search-box {
+        max-width: 250px;
+    }
+    
+    .search-box .input-group-text {
+        background: transparent;
+        border-right: none;
+    }
+    
+    .search-box .form-control {
+        border-left: none;
+        padding-left: 0;
+    }
+    
+    .search-box .form-control:focus {
+        box-shadow: none;
+    }
+    
+    /* Tenant Table */
+    .tenant-table {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    
+    .tenant-table .table {
+        margin-bottom: 0;
+    }
+    
+    .tenant-table .table th {
+        background: var(--background);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .tenant-table .table td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .tenant-table .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .tenant-table .table tbody tr:hover {
+        background: var(--background);
+    }
+    
+    /* Tenant Cell */
+    .tenant-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .tenant-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    
+    .tenant-avatar.active {
+        background: var(--success);
+        color: white;
+    }
+    
+    .tenant-avatar.inactive {
+        background: var(--background);
+        color: var(--text-muted);
+        border: 2px dashed var(--border);
+    }
+    
+    .tenant-info {
+        line-height: 1.3;
+        min-width: 0;
+    }
+    
+    .tenant-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .tenant-contact {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    /* Property Cell */
+    .property-cell {
+        line-height: 1.4;
+    }
+    
+    .property-name {
+        font-weight: 500;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+    
+    .property-detail {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .unit-badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    /* Rent Cell */
+    .rent-amount {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .rent-detail {
+        font-size: 0.7rem;
+    }
+    
+    /* Status */
+    .status-pill {
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    /* Actions Container */
+    .actions-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Action Buttons */
+    .action-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1.5px solid;
+        transition: all 0.2s ease;
+        position: relative;
+        font-size: 0.95rem;
+        text-decoration: none;
+        background: transparent;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        z-index: 10;
+    }
+    
+    .action-btn:active {
+        transform: translateY(0);
+    }
+    
+    /* Specific button styles */
+    .action-btn.btn-outline-primary {
+        border-color: #6366f1;
+        color: #6366f1;
+    }
+    
+    .action-btn.btn-outline-primary:hover {
+        background: #6366f1;
+        color: white;
+        border-color: #6366f1;
+    }
+    
+    .action-btn.btn-success {
+        background: #10b981;
+        border-color: #10b981;
+        color: white;
+    }
+    
+    .action-btn.btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+    
+    .action-btn.btn-outline-info {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+    
+    .action-btn.btn-outline-info:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+    
+    .action-btn.btn-outline-warning {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+    
+    .action-btn.btn-outline-warning:hover {
+        background: #f59e0b;
+        color: white;
+        border-color: #f59e0b;
+    }
+    
+    /* Notice Badge */
+    .notice-badge {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: default;
+        background: #fbbf24;
+        color: #78350f;
+        border: none;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1 class="page-title"><i class="bi bi-people-fill text-primary me-2"></i>Residents</h1>
+        <p class="text-muted mb-0">Manage all your tenants and their occupancy details</p>
+    </div>
+    <a href="{% url 'properties:add_tenant' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i> Add Resident
+    </a>
+</div>
+
+<!-- Quick Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-primary-light text-primary">
+            <i class="bi bi-people"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value">{{ total_tenants }}</div>
+            <div class="stat-mini-label">Total</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-success-light text-success">
+            <i class="bi bi-person-check"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-success">{{ active_tenants }}</div>
+            <div class="stat-mini-label">Active</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-info-light text-info">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-info">{{ tenants_with_rent_paid }}</div>
+            <div class="stat-mini-label">Rent Paid</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-danger-light text-danger">
+            <i class="bi bi-exclamation-circle"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-danger">{{ tenants_with_pending_rent }}</div>
+            <div class="stat-mini-label">Pending</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-tabs">
+    <form method="get" class="d-flex flex-wrap align-items-center gap-2 w-100" id="filterForm">
+        <!-- Search -->
+        <div class="search-box flex-grow-1" style="max-width: 280px;">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control border-start-0" name="search" 
+                       placeholder="Search name, phone, email..." value="{{ search_query }}">
+            </div>
+        </div>
+        
+        <!-- Building Filter -->
+        <select name="building" class="form-select form-select-sm" style="max-width: 180px;" onchange="this.form.submit()">
+            <option value="">All Properties</option>
+            {% for building in all_buildings %}
+            <option value="{{ building.id }}" {% if building_filter == building.id|stringformat:"s" %}selected{% endif %}>
+                {{ building.name }}
+            </option>
+            {% endfor %}
+        </select>
+        
+        <!-- Room/Unit Filter (shows when building is selected) -->
+        {% if building_filter and all_rooms %}
+        <select name="room" class="form-select form-select-sm" style="max-width: 180px;" onchange="this.form.submit()">
+            <option value="">All Rooms/Units</option>
+            {% for room in all_rooms %}
+            <option value="{{ room.id }}" {% if room_filter == room.id %}selected{% endif %}>
+                {{ room.name }}
+            </option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        
+        <!-- Status Filter -->
+        <select name="status" class="form-select form-select-sm" style="max-width: 140px;" onchange="this.form.submit()">
+            <option value="">All Status</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Rent Paid</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+        
+        <!-- Search Button -->
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        
+        <!-- Clear Filters -->
+        {% if search_query or building_filter or status_filter or room_filter %}
+        <a href="{% url 'properties:tenant_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Active Filters Display -->
+{% if search_query or building_filter or status_filter or room_filter %}
+<div class="mb-3">
+    <small class="text-muted">
+        <i class="bi bi-filter me-1"></i>
+        Showing {{ tenants_with_details|length }} of {{ total_tenants }} residents
+        {% if search_query %}<span class="badge bg-primary ms-1">Search: "{{ search_query }}"</span>{% endif %}
+        {% if building_filter %}
+            {% for b in all_buildings %}
+                {% if b.id|stringformat:"s" == building_filter %}<span class="badge bg-info ms-1">{{ b.name }}</span>{% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if status_filter %}<span class="badge bg-secondary ms-1">{{ status_filter|title }}</span>{% endif %}
+    </small>
+</div>
+{% endif %}
+
+<!-- Quick Status Tabs -->
+<div class="mb-3">
+    <div class="btn-group btn-group-sm" role="group">
+        <a href="{% url 'properties:tenant_list' %}{% if search_query %}?search={{ search_query }}{% endif %}{% if building_filter %}&building={{ building_filter }}{% endif %}" 
+           class="btn {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            All ({{ total_tenants }})
+        </a>
+        <a href="?status=active{% if search_query %}&search={{ search_query }}{% endif %}{% if building_filter %}&building={{ building_filter }}{% endif %}" 
+           class="btn {% if status_filter == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
+            Active ({{ active_tenants }})
+        </a>
+        <a href="?status=paid{% if search_query %}&search={{ search_query }}{% endif %}{% if building_filter %}&building={{ building_filter }}{% endif %}" 
+           class="btn {% if status_filter == 'paid' %}btn-info{% else %}btn-outline-info{% endif %}">
+            Paid ({{ tenants_with_rent_paid }})
+        </a>
+        <a href="?status=pending{% if search_query %}&search={{ search_query }}{% endif %}{% if building_filter %}&building={{ building_filter }}{% endif %}" 
+           class="btn {% if status_filter == 'pending' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+            Pending ({{ tenants_with_pending_rent }})
+        </a>
+    </div>
+</div>
+
+<!-- Tenant Table -->
+<div class="tenant-table">
+    {% if tenants_with_details %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Resident</th>
+                    <th>Property</th>
+                    <th>Move-in</th>
+                    <th class="text-end">Per Month Rent</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tenantTableBody">
+                {% for tenant_data in tenants_with_details %}
+                <tr class="tenant-row" 
+                    data-name="{{ tenant_data.tenant.name|lower }}" 
+                    data-phone="{{ tenant_data.tenant.phone }}"
+                    data-building="{{ tenant_data.building_name|default:''|lower }}"
+                    data-room="{{ tenant_data.room_number|default:'' }}"
+                    data-unit="{{ tenant_data.unit_number|default:'' }}">
+                    <!-- Tenant -->
+                    <td>
+                        <div class="tenant-cell">
+                            <div class="tenant-avatar {% if tenant_data.current_occupancy %}active{% else %}inactive{% endif %}">
+                                {{ tenant_data.tenant.name|slice:":1"|upper }}
+                            </div>
+                            <div class="tenant-info">
+                                <div class="tenant-name">{{ tenant_data.tenant.name }}</div>
+                                <div class="tenant-contact">
+                                    <i class="bi bi-telephone"></i> {{ tenant_data.tenant.phone }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <!-- Property -->
+                    <td>
+                        {% if tenant_data.current_occupancy %}
+                        <div class="property-cell">
+                            <div class="property-name">{{ tenant_data.building_name }}</div>
+                            <div class="property-detail">
+                                {% if tenant_data.location_type == 'FLAT' %}
+                                <span class="unit-badge bg-primary-light text-primary">
+                                    <i class="bi bi-door-closed me-1"></i>{{ tenant_data.unit_number }}
+                                </span>
+                                {% if tenant_data.current_occupancy.unit.bhk_type %}
+                                <span class="unit-badge bg-info-light text-info ms-1">
+                                    {{ tenant_data.current_occupancy.unit.bhk_type }}
+                                </span>
+                                {% endif %}
+                                {% elif tenant_data.location_type == 'PG' %}
+                                <span class="unit-badge bg-success-light text-success">
+                                    <i class="bi bi-door-closed me-1"></i>Room {{ tenant_data.room_number }}
+                                </span>
+                                <span class="unit-badge bg-secondary-light text-secondary ms-1">
+                                    Bed {{ tenant_data.bed_number }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small">Not assigned</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Move-in -->
+                    <td>
+                        {% if tenant_data.move_in_date %}
+                        <span class="small">{{ tenant_data.move_in_date|date:"d M Y" }}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Per Month Rent -->
+                    <td class="text-end">
+                        {% if tenant_data.is_secondary_tenant %}
+                        <span class="text-info small">
+                            <i class="bi bi-people me-1"></i>Member
+                            {% if tenant_data.is_primary is False %}
+                            <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">Co-occupant</span>
+                            {% endif %}
+                        </span>
+                        {% else %}
+                        <div class="rent-amount fw-bold">₹{{ tenant_data.monthly_rent|floatformat:0 }}/month</div>
+                        {% if tenant_data.rent_paid > 0 %}
+                        <div class="rent-detail text-success small">Paid: ₹{{ tenant_data.rent_paid|floatformat:0 }}</div>
+                        {% endif %}
+                        {% if tenant_data.rent_pending > 0 %}
+                        <div class="rent-detail text-danger small">Due: ₹{{ tenant_data.rent_pending|floatformat:0 }}</div>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Status -->
+                    <td class="text-center">
+                        {% if tenant_data.current_occupancy %}
+                            {% if tenant_data.rent_status == 'PAID' %}
+                            <span class="status-pill bg-success-light text-success">
+                                <i class="bi bi-check-circle me-1"></i>Paid
+                            </span>
+                            {% elif tenant_data.rent_status == 'PARTIAL' %}
+                            <span class="status-pill bg-warning-light text-warning">
+                                <i class="bi bi-pie-chart me-1"></i>Partial
+                            </span>
+                            {% elif tenant_data.rent_status == 'PENDING' %}
+                            <span class="status-pill bg-danger-light text-danger">
+                                <i class="bi bi-clock me-1"></i>Pending
+                            </span>
+                            {% elif tenant_data.rent_status == 'CO_OCCUPANT' %}
+                            <span class="status-pill bg-info-light text-info">
+                                <i class="bi bi-people me-1"></i>Co-occupant
+                            </span>
+                            {% else %}
+                            <span class="status-pill bg-primary-light text-primary">Active</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="status-pill bg-secondary-light text-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Actions -->
+                    <td class="text-center">
+                        <div class="actions-container">
+                            <!-- View Profile -->
+                            <a href="{% url 'properties:tenant_history' tenant_data.tenant.id %}" 
+                               class="action-btn btn btn-outline-primary" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top"
+                               title="View Profile & History">
+                                <i class="bi bi-person"></i>
+                            </a>
+                            
+                            <!-- Collect Rent (only if not paid and not co-occupant) -->
+                            {% if tenant_data.current_occupancy and tenant_data.rent_status != 'PAID' and not tenant_data.is_secondary_tenant %}
+                            <a href="{% url 'properties:add_rent' %}?occupancy={{ tenant_data.current_occupancy.id }}" 
+                               class="action-btn btn btn-success" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top"
+                               title="Collect Rent Payment">
+                                <i class="bi bi-cash-coin"></i>
+                            </a>
+                            {% endif %}
+                            
+                            <!-- Notice Button/Badge -->
+                            {% if not tenant_data.has_notice %}
+                            <a href="{% url 'properties:give_notice' tenant_data.tenant.id %}" 
+                               class="action-btn btn btn-outline-info" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top"
+                               title="Record Notice Period">
+                                <i class="bi bi-calendar-x"></i>
+                            </a>
+                            {% else %}
+                            <span class="notice-badge bg-warning text-dark" 
+                                  data-bs-toggle="tooltip" 
+                                  data-bs-placement="top"
+                                  title="Notice given on {{ tenant_data.notice_date|date:'d M Y' }}">
+                                <i class="bi bi-info-circle"></i>
+                                <span>NOTICE</span>
+                            </span>
+                            {% endif %}
+                            
+                            <!-- Checkout -->
+                            <a href="{% url 'properties:tenant_checkout' tenant_data.tenant.id %}" 
+                               class="action-btn btn btn-outline-warning" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top"
+                               title="Checkout Tenant">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- No Results -->
+    <div class="empty-state" id="noResults" style="display: none;">
+        <i class="bi bi-search empty-state-icon"></i>
+        <h5>No Matching Residents</h5>
+        <p class="text-muted mb-0">Try adjusting your search term.</p>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <i class="bi bi-people"></i>
+        </div>
+        <h5>No Residents Yet</h5>
+        <p class="text-muted mb-3">
+            {% if status_filter %}
+            No residents match this filter. Try a different filter.
+            {% else %}
+            Start by adding your first resident to track occupancy and payments.
+            {% endif %}
+        </p>
+        {% if status_filter %}
+        <a href="{% url 'properties:tenant_list' %}" class="btn btn-outline-primary">View All</a>
+        {% else %}
+        <a href="{% url 'properties:add_tenant' %}" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i> Add First Resident
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% if paginator and paginator.num_pages > 1 %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if tenants.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="bi bi-chevron-double-left"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ tenants.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">{{ tenants.number }} of {{ tenants.paginator.num_pages }}</span>
+        </li>
+        
+        {% if tenants.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ tenants.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ tenants.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="bi bi-chevron-double-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<script>
+// Initialize Bootstrap tooltips on page load
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function filterTenants() {
+    const searchTerm = document.getElementById('searchTenant').value.toLowerCase();
+    const rows = document.querySelectorAll('.tenant-row');
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const name = row.dataset.name || '';
+        const phone = row.dataset.phone || '';
+        const building = row.dataset.building || '';
+        const room = row.dataset.room || '';
+        const unit = row.dataset.unit || '';
+        
+        if (name.includes(searchTerm) || phone.includes(searchTerm) || 
+            building.includes(searchTerm) || room.includes(searchTerm) || 
+            unit.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('noResults').style.display = visibleCount === 0 ? '' : 'none';
+}
+
+// Animate on load and initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Animate stat cards
+    document.querySelectorAll('.stat-mini').forEach((card, i) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 50 * i);
+    });
+});
+</script>
+{% endblock %}

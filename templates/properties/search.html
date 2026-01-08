@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Search - PropertyNest{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-search"></i> Search Results</h2>
+</div>
+
+<!-- Search Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="{% url 'properties:search' %}">
+            <div class="input-group">
+                <input type="text" class="form-control" name="q" value="{{ query }}" 
+                       placeholder="Search buildings, units, tenants, issues..." required>
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+    {% if has_results %}
+        <!-- Buildings -->
+        {% if results.buildings %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-building"></i> Buildings ({{ results.buildings|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for building in results.buildings %}
+                    <a href="{% url 'properties:building_detail' building.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="mb-1">{{ building.name }}</h6>
+                                <small class="text-muted">{{ building.address|truncatewords:10 }}</small>
+                            </div>
+                            <span class="badge bg-primary">{{ building.total_units }} units</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Units -->
+        {% if results.units %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-door-open"></i> Units ({{ results.units|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for unit in results.units %}
+                    <a href="{% url 'properties:unit_detail' unit.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="mb-1">{{ unit.unit_number }}</h6>
+                                <small class="text-muted">{{ unit.building.name }} - {{ unit.get_unit_type_display }}</small>
+                            </div>
+                            <span class="badge {% if unit.status == 'OCCUPIED' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ unit.get_status_display }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tenants -->
+        {% if results.tenants %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-people"></i> Tenants ({{ results.tenants|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for tenant in results.tenants %}
+                    <a href="{% url 'properties:tenant_history' tenant.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="mb-1">{{ tenant.name }}</h6>
+                                <small class="text-muted">{{ tenant.phone }} {% if tenant.email %}| {{ tenant.email }}{% endif %}</small>
+                            </div>
+                            {% if tenant.current_occupancy %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Issues -->
+        {% if results.issues %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-exclamation-triangle"></i> Issues ({{ results.issues|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for issue in results.issues %}
+                    <a href="{% url 'properties:issue_detail' issue.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="mb-1">{{ issue.title }}</h6>
+                                <small class="text-muted">{{ issue.unit.building.name }} - {{ issue.unit.unit_number }}</small>
+                            </div>
+                            <span class="badge {% if issue.status == 'RESOLVED' %}bg-success{% elif issue.priority == 'URGENT' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ issue.get_status_display }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No results found for "<strong>{{ query }}</strong>"
+        </div>
+    {% endif %}
+{% else %}
+    <div class="alert alert-secondary">
+        <i class="bi bi-info-circle"></i> Enter a search term to find buildings, units, tenants, or issues.
+    </div>
+{% endif %}
+{% endblock %}
+

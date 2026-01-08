@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}Issues & Maintenance - PropertyNest{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 animate-fade-in">
+    <div>
+        <h1 class="mb-1">
+            <i class="bi bi-tools text-primary"></i> Maintenance Requests
+        </h1>
+        <p class="text-muted mb-0">Track and resolve property issues efficiently</p>
+    </div>
+    <a href="{% url 'properties:add_issue' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Request
+    </a>
+</div>
+
+<!-- Stats Summary -->
+{% if stats %}
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3 animate-fade-in">
+        <div class="stat-card" style="border-left-color: var(--warning-color);">
+            <i class="bi bi-exclamation-circle stat-icon" style="color: var(--warning-color);"></i>
+            <div class="stat-value" style="color: var(--warning-color);">{{ stats.total }}</div>
+            <div class="stat-label">Total Issues</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3 animate-fade-in" style="animation-delay: 0.1s">
+        <div class="stat-card" style="border-left-color: var(--danger-color);">
+            <i class="bi bi-hourglass-split stat-icon" style="color: var(--danger-color);"></i>
+            <div class="stat-value" style="color: var(--danger-color);">{{ stats.open }}</div>
+            <div class="stat-label">Open Issues</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3 animate-fade-in" style="animation-delay: 0.2s">
+        <div class="stat-card" style="border-left-color: var(--info-color);">
+            <i class="bi bi-arrow-repeat stat-icon" style="color: var(--info-color);"></i>
+            <div class="stat-value" style="color: var(--info-color);">{{ stats.in_progress }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3 animate-fade-in" style="animation-delay: 0.3s">
+        <div class="stat-card" style="border-left-color: var(--success-color);">
+            <i class="bi bi-check-circle stat-icon" style="color: var(--success-color);"></i>
+            <div class="stat-value" style="color: var(--success-color);">{{ stats.resolved }}</div>
+            <div class="stat-label">Resolved</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="card mb-4 animate-fade-in" style="animation-delay: 0.4s">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end" id="filterForm">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-funnel"></i> Status
+                </label>
+                <select name="status" class="form-select auto-submit">
+                    <option value="">All Statuses</option>
+                    <option value="OPEN" {% if status_filter == 'OPEN' %}selected{% endif %}>Open</option>
+                    <option value="ASSIGNED" {% if status_filter == 'ASSIGNED' %}selected{% endif %}>Assigned</option>
+                    <option value="IN_PROGRESS" {% if status_filter == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                    <option value="RESOLVED" {% if status_filter == 'RESOLVED' %}selected{% endif %}>Resolved</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-speedometer"></i> Priority
+                </label>
+                <select name="priority" class="form-select auto-submit">
+                    <option value="">All Priorities</option>
+                    <option value="URGENT" {% if priority_filter == 'URGENT' %}selected{% endif %}>Urgent</option>
+                    <option value="HIGH" {% if priority_filter == 'HIGH' %}selected{% endif %}>High</option>
+                    <option value="MEDIUM" {% if priority_filter == 'MEDIUM' %}selected{% endif %}>Medium</option>
+                    <option value="LOW" {% if priority_filter == 'LOW' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <a href="{% url 'properties:issue_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-submit filters on change
+document.querySelectorAll('.auto-submit').forEach(function(element) {
+    element.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+</script>
+
+<!-- Issues List -->
+<div class="card animate-fade-in" style="animation-delay: 0.5s">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> All Requests</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if issues %}
+            <div class="list-group list-group-flush">
+                {% for issue in issues %}
+                    <a href="{% url 'properties:issue_detail' issue.id %}" 
+                       class="list-group-item list-group-item-action hover-lift"
+                       style="border-left: 4px solid {% if issue.priority == 'URGENT' %}#ef4444{% elif issue.priority == 'HIGH' %}#f59e0b{% elif issue.priority == 'MEDIUM' %}#3b82f6{% else %}#6b7280{% endif %};">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1 me-3">
+                                <!-- Title & Priority -->
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if issue.priority == 'URGENT' %}
+                                    <i class="bi bi-lightning-fill text-danger me-2" style="font-size: 1.1rem;"></i>
+                                    {% elif issue.priority == 'HIGH' %}
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-2" style="font-size: 1.1rem;"></i>
+                                    {% elif issue.priority == 'MEDIUM' %}
+                                    <i class="bi bi-info-circle-fill text-info me-2" style="font-size: 1.1rem;"></i>
+                                    {% else %}
+                                    <i class="bi bi-dash-circle-fill text-secondary me-2" style="font-size: 1.1rem;"></i>
+                                    {% endif %}
+                                    <h6 class="mb-0 fw-bold">{{ issue.title }}</h6>
+                                </div>
+                                
+                                <!-- Description -->
+                                <p class="mb-2 text-muted small">{{ issue.description|truncatewords:25 }}</p>
+                                
+                                <!-- Meta Information -->
+                                <div class="d-flex flex-wrap gap-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-building-fill text-primary"></i> 
+                                        <strong>{{ issue.unit.building.name }}</strong>
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="bi bi-door-closed-fill text-secondary"></i> 
+                                        {{ issue.unit.unit_number }}
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar-event"></i> 
+                                        {{ issue.raised_date|date:"d M, Y" }}
+                                    </small>
+                                    {% if issue.assigned_to %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-person-check-fill text-success"></i> 
+                                        {{ issue.assigned_to }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Status & Priority Badges -->
+                            <div class="text-end d-flex flex-column gap-2">
+                                <!-- Priority Badge -->
+                                {% if issue.priority == 'URGENT' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-lightning-fill"></i> Urgent
+                                </span>
+                                {% elif issue.priority == 'HIGH' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-arrow-up-circle-fill"></i> High
+                                </span>
+                                {% elif issue.priority == 'MEDIUM' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-dash-circle-fill"></i> Medium
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-arrow-down-circle-fill"></i> Low
+                                </span>
+                                {% endif %}
+                                
+                                <!-- Status Badge -->
+                                {% if issue.status == 'RESOLVED' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle-fill"></i> Resolved
+                                </span>
+                                {% elif issue.status == 'IN_PROGRESS' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-arrow-repeat"></i> In Progress
+                                </span>
+                                {% elif issue.status == 'ASSIGNED' %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-person-check-fill"></i> Assigned
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-exclamation-circle"></i> Open
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3 text-success">No Issues Found</h4>
+                <p class="text-muted">
+                    {% if status_filter or priority_filter %}
+                        No issues match your current filters. Try clearing the filters.
+                    {% else %}
+                        Great! There are no reported issues at the moment.
+                    {% endif %}
+                </p>
+                {% if status_filter or priority_filter %}
+                <a href="{% url 'properties:issue_list' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'properties/pagination.html' %}
+{% endblock %}
+

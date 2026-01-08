@@ -1,0 +1,38 @@
+# =============================================================================
+# Render.com Blueprint - Auto-deploy configuration
+# =============================================================================
+# This file tells Render how to deploy your application
+# When you push to GitHub, Render automatically deploys changes
+# =============================================================================
+
+databases:
+  - name: smartpg-db
+    plan: free  # Free PostgreSQL database
+    databaseName: smart_pg
+    user: smartpg
+
+services:
+  - type: web
+    name: smartpg-web
+    plan: free  # Free web service
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn smart_pg.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: smart_pg.settings_render
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: DJANGO_SECRET_KEY
+        generateValue: true  # Auto-generate secure key
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartpg-db
+          property: connectionString
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false  # Set manually after deploy
+    healthCheckPath: /health/
+    autoDeploy: true  # Auto-deploy on GitHub push
+

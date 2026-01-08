@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ issue.title }} - PropertyNest{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-exclamation-triangle"></i> {{ issue.title }}</h2>
+        <p class="text-muted mb-0">{{ issue.unit.building.name }} - {{ issue.unit.unit_number }}</p>
+    </div>
+    <a href="{% url 'properties:issue_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Issues
+    </a>
+</div>
+
+<div class="row">
+    <!-- Issue Details -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Issue Details</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="30%">Title:</th>
+                        <td><strong>{{ issue.title }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Description:</th>
+                        <td>{{ issue.description|linebreaks }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge badge-status status-{{ issue.status }}">
+                                {{ issue.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Priority:</th>
+                        <td>
+                            <span class="badge bg-secondary">{{ issue.get_priority_display }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Assigned To:</th>
+                        <td>{{ issue.assigned_to|default:"Not assigned" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Raised Date:</th>
+                        <td>{{ issue.raised_date|date:"d M Y, h:i A" }}</td>
+                    </tr>
+                    {% if issue.resolved_date %}
+                    <tr>
+                        <th>Resolved Date:</th>
+                        <td>{{ issue.resolved_date|date:"d M Y, h:i A" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+
+                <!-- Update Status Form -->
+                <hr>
+                <h6>Update Status</h6>
+                <form method="post" class="row g-3">
+                    {% csrf_token %}
+                    <div class="col-md-6">
+                        <select name="status" class="form-select" required>
+                            <option value="raised" {% if issue.status == 'raised' %}selected{% endif %}>Raised</option>
+                            <option value="assigned" {% if issue.status == 'assigned' %}selected{% endif %}>Assigned</option>
+                            <option value="in_progress" {% if issue.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="resolved" {% if issue.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-check-circle"></i> Update Status
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unit & Tenant Info -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-building"></i> Unit Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Building:</strong> {{ issue.unit.building.name }}</p>
+                <p><strong>Unit:</strong> {{ issue.unit.unit_number }}</p>
+                <p><strong>Type:</strong> {{ issue.unit.get_unit_type_display }}</p>
+                <a href="{% url 'properties:unit_detail' issue.unit.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-eye"></i> View Unit Details
+                </a>
+            </div>
+        </div>
+
+        {% if issue.tenant %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-person"></i> Tenant Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ issue.tenant.name }}</p>
+                <p><strong>Phone:</strong> {{ issue.tenant.phone }}</p>
+                <a href="{% url 'properties:tenant_history' issue.tenant.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-clock-history"></i> View History
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

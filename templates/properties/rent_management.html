@@ -1,0 +1,521 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Payments - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px) { .stats-row { grid-template-columns: 1fr; } }
+    
+    .stat-mini {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .stat-mini-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    
+    .stat-mini-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .stat-mini-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    /* Filter Card */
+    .filter-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 140px;
+    }
+    
+    .filter-group label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+    
+    /* Table */
+    .payment-table {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    
+    .payment-table .table {
+        margin-bottom: 0;
+    }
+    
+    .payment-table .table th {
+        background: var(--background);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .payment-table .table td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .payment-table .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .payment-table .table tbody tr:hover {
+        background: var(--background);
+    }
+    
+    .tenant-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .tenant-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    
+    .tenant-info {
+        line-height: 1.3;
+    }
+    
+    .tenant-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+    }
+    
+    .tenant-phone {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .property-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background: var(--background);
+        color: var(--text-secondary);
+    }
+    
+    .amount-cell {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 50px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+    
+    /* Empty State */
+    .empty-payments {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+    
+    .empty-payments-icon {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1 class="page-title"><i class="bi bi-wallet2 text-primary me-2"></i>Payment Management</h1>
+        <p class="text-muted mb-0">Track and manage all rent payments across your properties</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'properties:rent_management' %}?export=csv{% if building_filter %}&building={{ building_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+           class="btn btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Export
+        </a>
+        <a href="{% url 'properties:add_rent' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Record Payment
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-primary-light text-primary">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value">₹{{ total_expected|floatformat:0|default:"0" }}</div>
+            <div class="stat-mini-label">Expected</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-success-light text-success">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-success">₹{{ total_paid|floatformat:0|default:"0" }}</div>
+            <div class="stat-mini-label">Collected</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-danger-light text-danger">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-danger">₹{{ total_pending|floatformat:0|default:"0" }}</div>
+            <div class="stat-mini-label">Pending</div>
+        </div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-icon bg-info-light text-info">
+            <i class="bi bi-percent"></i>
+        </div>
+        <div>
+            <div class="stat-mini-value text-info">{{ collection_rate|floatformat:0|default:"0" }}%</div>
+            <div class="stat-mini-label">Collection Rate</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <form method="get" class="filter-row" id="filterForm">
+        {% if available_months %}
+        <div class="filter-group">
+            <label><i class="bi bi-calendar me-1"></i>Month</label>
+            <select name="month" class="form-select form-select-sm auto-submit">
+                {% for month in available_months %}
+                <option value="{{ month|date:'Y-m' }}" {% if month == current_month %}selected{% endif %}>
+                    {{ month|date:"F Y" }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        
+        <div class="filter-group">
+            <label><i class="bi bi-building me-1"></i>Property</label>
+            <select name="building" class="form-select form-select-sm auto-submit">
+                <option value="">All Properties</option>
+                {% for building in buildings %}
+                <option value="{{ building.id }}" {% if building_filter == building.id|stringformat:"s" %}selected{% endif %}>
+                    {{ building.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group" style="min-width: 100px;">
+            <label><i class="bi bi-funnel me-1"></i>Status</label>
+            <select name="status" class="form-select form-select-sm auto-submit">
+                <option value="">All</option>
+                <option value="PAID" {% if status_filter == 'PAID' %}selected{% endif %}>✓ Paid</option>
+                <option value="PARTIAL" {% if status_filter == 'PARTIAL' %}selected{% endif %}>◐ Partial</option>
+                <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>○ Pending</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label><i class="bi bi-search me-1"></i>Search</label>
+            <input type="text" name="tenant" class="form-control form-control-sm" 
+                   placeholder="Tenant name..." value="{{ tenant_filter }}">
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-search"></i> Filter
+            </button>
+            <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x"></i> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Month-wise Summary -->
+{% if month_wise_summary %}
+<div class="card mb-3">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Month-wise Summary (Last 12 Months)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th class="text-end">Expected</th>
+                        <th class="text-end">Collected</th>
+                        <th class="text-end">Pending</th>
+                        <th class="text-center">Rate</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month_data in month_wise_summary %}
+                    <tr class="{% if month_data.month == current_month %}table-primary{% endif %}">
+                        <td>
+                            <a href="?month={{ month_data.month|date:'Y-m' }}" class="text-decoration-none fw-semibold">
+                                {{ month_data.month_str }}
+                            </a>
+                        </td>
+                        <td class="text-end">₹{{ month_data.expected|floatformat:0|intcomma }}</td>
+                        <td class="text-end text-success">₹{{ month_data.collected|floatformat:0|intcomma }}</td>
+                        <td class="text-end {% if month_data.pending > 0 %}text-danger{% else %}text-muted{% endif %}">
+                            ₹{{ month_data.pending|floatformat:0|intcomma }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if month_data.rate >= 90 %}bg-success{% elif month_data.rate >= 70 %}bg-info{% elif month_data.rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ month_data.rate }}%
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <small class="text-muted">
+                                <i class="bi bi-check-circle text-success"></i> {{ month_data.paid_count }}
+                                <i class="bi bi-pie-chart text-warning ms-2"></i> {{ month_data.partial_count }}
+                                <i class="bi bi-clock text-danger ms-2"></i> {{ month_data.pending_count }}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Alerts -->
+{% if overdue_rents %}
+<div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span><strong>{{ overdue_rents|length }} Overdue</strong> payments need immediate attention</span>
+    <a href="?status=PENDING" class="btn btn-sm btn-danger ms-auto">View All</a>
+</div>
+{% endif %}
+
+<!-- Payments Table -->
+<div class="payment-table">
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <span class="fw-semibold">
+            <i class="bi bi-list-ul me-1"></i>
+            {{ current_month|date:"F Y" }} Payments
+            {% if rents %}<span class="badge bg-primary ms-1">{{ rents|length }}</span>{% endif %}
+        </span>
+    </div>
+    
+    {% if rents %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Property</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-end">Paid</th>
+                    <th class="text-end">Due</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rent in rents %}
+                <tr>
+                    <td>
+                        <div class="tenant-cell">
+                            <div class="tenant-avatar">
+                                {{ rent.occupancy.tenant.name|slice:":1"|upper }}
+                            </div>
+                            <div class="tenant-info">
+                                <div class="tenant-name">{{ rent.occupancy.tenant.name }}</div>
+                                <div class="tenant-phone">{{ rent.occupancy.tenant.phone }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div>
+                            {% if rent.occupancy.unit %}
+                            <span class="property-badge">
+                                <i class="bi bi-building"></i>
+                                {{ rent.occupancy.unit.building.name }}
+                            </span>
+                            <span class="badge bg-primary">{{ rent.occupancy.unit.unit_number }}</span>
+                            {% else %}
+                            <span class="property-badge">
+                                <i class="bi bi-house-door"></i>
+                                {{ rent.occupancy.bed.room.unit.building.name }}
+                            </span>
+                            <span class="badge bg-info">{{ rent.occupancy.bed.room.room_number }}</span>
+                            <span class="badge bg-secondary">{{ rent.occupancy.bed.bed_number }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="text-end amount-cell">₹{{ rent.amount|floatformat:0 }}</td>
+                    <td class="text-end amount-cell text-success">₹{{ rent.paid_amount|floatformat:0 }}</td>
+                    <td class="text-end amount-cell {% if rent.pending_amount > 0 %}text-danger{% endif %}">
+                        {% if rent.pending_amount > 0 %}₹{{ rent.pending_amount|floatformat:0 }}{% else %}-{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if rent.status == 'PAID' %}
+                        <span class="status-badge bg-success-light text-success">
+                            <i class="bi bi-check-circle me-1"></i>Paid
+                        </span>
+                        {% elif rent.status == 'PARTIAL' %}
+                        <span class="status-badge bg-warning-light text-warning">
+                            <i class="bi bi-pie-chart me-1"></i>Partial
+                        </span>
+                        {% else %}
+                        <span class="status-badge bg-danger-light text-danger">
+                            <i class="bi bi-clock me-1"></i>Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-1">
+                            <a href="{% url 'properties:edit_rent' rent.id %}" 
+                               class="action-btn btn btn-sm btn-outline-secondary" title="Edit Payment">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if rent.payment_proof %}
+                            <a href="{{ rent.payment_proof.url }}" 
+                               class="action-btn btn btn-sm btn-outline-info" target="_blank" title="View Payment Proof">
+                                <i class="bi bi-file-earmark-image"></i>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'properties:print_rent_receipt' rent.id %}" 
+                               class="action-btn btn btn-sm btn-outline-primary" target="_blank" title="View Receipt">
+                                <i class="bi bi-receipt"></i>
+                            </a>
+                            <a href="{% url 'properties:download_rent_receipt' rent.id %}" 
+                               class="action-btn btn btn-sm btn-outline-success" title="Download PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-payments">
+        <div class="empty-payments-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h5>No Payments Found</h5>
+        <p class="text-muted mb-3">
+            {% if status_filter or building_filter or tenant_filter %}
+            No payments match your filter criteria. Try adjusting your filters.
+            {% else %}
+            Start by recording a payment from your tenants.
+            {% endif %}
+        </p>
+        {% if status_filter or building_filter or tenant_filter %}
+        <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-primary">Clear Filters</a>
+        {% else %}
+        <a href="{% url 'properties:add_rent' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Record First Payment
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% include 'properties/pagination.html' %}
+
+<script>
+// Auto-submit filters on change
+document.querySelectorAll('.auto-submit').forEach(function(element) {
+    element.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+</script>
+{% endblock %}

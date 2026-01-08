@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Documents - {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .docs-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .docs-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 992px) {
+        .stat-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    .stat-card {
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .stat-card .stat-label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .docs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    
+    .doc-card {
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .doc-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .doc-preview {
+        height: 140px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .doc-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .doc-preview .doc-icon {
+        font-size: 3rem;
+        color: var(--text-muted);
+    }
+    
+    .doc-preview .doc-icon.pdf { color: #ef4444; }
+    .doc-preview .doc-icon.doc { color: #3b82f6; }
+    .doc-preview .doc-icon.image { color: #10b981; }
+    
+    .verification-badge {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .verification-badge.verified {
+        background: #10b981;
+        color: white;
+    }
+    
+    .verification-badge.pending {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .verification-badge.rejected {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .verification-badge.expired {
+        background: #6b7280;
+        color: white;
+    }
+    
+    .doc-body {
+        padding: 1rem;
+    }
+    
+    .doc-type {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .doc-number {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+    
+    .doc-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        margin-top: 0.75rem;
+    }
+    
+    .doc-actions {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: var(--background);
+        border-top: 1px solid var(--border);
+    }
+    
+    .doc-actions .btn {
+        flex: 1;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        opacity: 0.5;
+        margin-bottom: 1rem;
+    }
+    
+    .type-filter {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    
+    .type-filter .badge {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .type-filter .badge:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="docs-header">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+            <a href="{% url 'properties:tenant_history' tenant.id %}" class="btn btn-sm btn-light mb-2">
+                <i class="bi bi-arrow-left me-1"></i>Back to Profile
+            </a>
+            <h1><i class="bi bi-folder2-open me-2"></i>{{ tenant.name }}'s Documents</h1>
+            <p class="mb-0 opacity-90">Manage identity proofs, agreements, and verification documents</p>
+        </div>
+        <a href="{% url 'properties:upload_document' tenant.id %}" class="btn btn-light">
+            <i class="bi bi-cloud-upload me-2"></i>Upload Document
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-value">{{ total_docs }}</div>
+        <div class="stat-label">Total Documents</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-success">{{ verified_count }}</div>
+        <div class="stat-label">Verified</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-warning">{{ pending_count }}</div>
+        <div class="stat-label">Pending Verification</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value text-danger">{{ expired_count }}</div>
+        <div class="stat-label">Expired</div>
+    </div>
+</div>
+
+{% if documents %}
+<!-- Documents Grid -->
+<div class="docs-grid">
+    {% for doc in documents %}
+    <div class="doc-card">
+        <div class="doc-preview">
+            {% if doc.is_image %}
+            <img src="{{ doc.file.url }}" alt="{{ doc.get_document_type_display }}">
+            {% elif doc.is_pdf %}
+            <i class="bi bi-file-earmark-pdf doc-icon pdf"></i>
+            {% else %}
+            <i class="bi bi-file-earmark-text doc-icon doc"></i>
+            {% endif %}
+            
+            <span class="verification-badge {% if doc.is_expired %}expired{% else %}{{ doc.verification_status|lower }}{% endif %}">
+                {% if doc.is_expired %}
+                <i class="bi bi-exclamation-circle me-1"></i>Expired
+                {% elif doc.verification_status == 'VERIFIED' %}
+                <i class="bi bi-check-circle me-1"></i>Verified
+                {% elif doc.verification_status == 'REJECTED' %}
+                <i class="bi bi-x-circle me-1"></i>Rejected
+                {% else %}
+                <i class="bi bi-clock me-1"></i>Pending
+                {% endif %}
+            </span>
+        </div>
+        
+        <div class="doc-body">
+            <div class="doc-type">{{ doc.get_document_type_display }}</div>
+            {% if doc.document_number %}
+            <div class="doc-number">
+                <i class="bi bi-hash me-1"></i>{{ doc.document_number }}
+            </div>
+            {% endif %}
+            
+            <div class="doc-meta">
+                <span><i class="bi bi-calendar3 me-1"></i>{{ doc.created_at|date:"d M Y" }}</span>
+                <span><i class="bi bi-file-earmark me-1"></i>{{ doc.formatted_file_size }}</span>
+            </div>
+            
+            {% if doc.expiry_date %}
+            <div class="mt-2">
+                <small class="{% if doc.is_expired %}text-danger{% else %}text-muted{% endif %}">
+                    <i class="bi bi-calendar-x me-1"></i>
+                    Expires: {{ doc.expiry_date|date:"d M Y" }}
+                    {% if doc.is_expired %}(Expired){% endif %}
+                </small>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="doc-actions">
+            <a href="{% url 'properties:view_document' doc.id %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-eye"></i>
+            </a>
+            <a href="{% url 'properties:view_document' doc.id %}?download=1" class="btn btn-secondary btn-sm">
+                <i class="bi bi-download"></i>
+            </a>
+            {% if doc.verification_status == 'PENDING' %}
+            <a href="{% url 'properties:verify_document' doc.id %}" class="btn btn-success btn-sm">
+                <i class="bi bi-check-lg"></i>
+            </a>
+            {% endif %}
+            <a href="{% url 'properties:delete_document' doc.id %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-trash"></i>
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div class="empty-state">
+    <i class="bi bi-folder2"></i>
+    <h5>No Documents Uploaded</h5>
+    <p class="text-muted mb-4">Upload tenant documents like Aadhaar, PAN, Police Verification, etc.</p>
+    <a href="{% url 'properties:upload_document' tenant.id %}" class="btn btn-primary">
+        <i class="bi bi-cloud-upload me-2"></i>Upload First Document
+    </a>
+</div>
+{% endif %}
+
+<!-- Quick Upload Section -->
+{% if documents %}
+<div class="mt-4 p-4 bg-light rounded-3">
+    <h6 class="mb-3"><i class="bi bi-plus-circle me-2"></i>Quick Upload</h6>
+    <div class="d-flex gap-2 flex-wrap">
+        {% for doc_type in available_types %}
+        <a href="{% url 'properties:upload_document' tenant.id %}?type={{ doc_type.0 }}" 
+           class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus me-1"></i>{{ doc_type.1 }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

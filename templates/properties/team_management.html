@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}Team Management - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .page-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .manager-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+    
+    .manager-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary);
+    }
+    
+    .manager-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    
+    .manager-name {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .manager-meta {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+    
+    .access-badge {
+        background: var(--success);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .access-badge.no-access {
+        background: var(--warning);
+    }
+    
+    .building-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    
+    .building-tag {
+        background: var(--background);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: var(--surface);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-lg);
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1 class="page-title"><i class="bi bi-people-fill text-primary me-2"></i>Team Management</h1>
+        <p class="page-subtitle mb-0">Manage your managers and their building access</p>
+    </div>
+    <a href="{% url 'properties:add_manager' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i> Add Manager
+    </a>
+</div>
+
+<!-- Owner Info -->
+<div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-shield-check"></i>
+        <div>
+            <strong>Owner: {{ owner.username }}</strong> - You have full access to all {{ all_buildings|length }} properties.
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="summary-cards">
+    <div class="summary-card">
+        <div class="summary-icon bg-primary-light text-primary">
+            <i class="bi bi-people"></i>
+        </div>
+        <div>
+            <div class="summary-value">{{ total_managers }}</div>
+            <div class="summary-label">Total Managers</div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon bg-success-light text-success">
+            <i class="bi bi-buildings"></i>
+        </div>
+        <div>
+            <div class="summary-value">{{ all_buildings|length }}</div>
+            <div class="summary-label">Total Properties</div>
+        </div>
+    </div>
+</div>
+
+<!-- Managers List -->
+{% if managers %}
+<div class="row">
+    {% for m in managers %}
+    <div class="col-md-6 col-lg-4">
+        <div class="manager-card">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="manager-avatar">
+                        {{ m.user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <div class="manager-name">{{ m.user.username }}</div>
+                        <div class="manager-meta">
+                            {% if m.user.email %}<i class="bi bi-envelope me-1"></i>{{ m.user.email }}<br>{% endif %}
+                            {% if m.user.phone %}<i class="bi bi-phone me-1"></i>{{ m.user.phone }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'properties:manager_detail' m.user.id %}">
+                                <i class="bi bi-eye me-2"></i>View Details
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'properties:manage_building_access' m.user.id %}">
+                                <i class="bi bi-building me-2"></i>Manage Access
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="{% url 'properties:remove_manager' m.user.id %}">
+                                <i class="bi bi-person-x me-2"></i>Remove Manager
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="access-badge {% if m.access_count == 0 %}no-access{% endif %}">
+                    {{ m.access_count }}/{{ m.total_buildings }} Buildings
+                </span>
+                <small class="text-muted">
+                    Added {{ m.user.date_joined|timesince }} ago
+                </small>
+            </div>
+            
+            {% if m.building_accesses %}
+            <div class="building-tags">
+                {% for access in m.building_accesses|slice:":3" %}
+                <span class="building-tag">
+                    <i class="bi bi-building me-1"></i>{{ access.building.name }}
+                </span>
+                {% endfor %}
+                {% if m.building_accesses|length > 3 %}
+                <span class="building-tag">+{{ m.building_accesses|length|add:"-3" }} more</span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="empty-state">
+    <div class="empty-icon">
+        <i class="bi bi-people"></i>
+    </div>
+    <h5>No Managers Yet</h5>
+    <p class="text-muted mb-3">Add managers to help you manage your properties.</p>
+    <a href="{% url 'properties:add_manager' %}" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i> Add Your First Manager
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+

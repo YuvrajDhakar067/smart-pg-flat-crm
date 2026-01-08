@@ -1,0 +1,613 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout {{ tenant.name }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-header {
+        background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    
+    .tenant-avatar-lg {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    
+    .section-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-body {
+        padding: 1rem;
+    }
+    
+    /* Summary Stats */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px) { .summary-grid { grid-template-columns: 1fr; } }
+    
+    .summary-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    /* Status Indicators */
+    .status-ok {
+        background: var(--success);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-warning {
+        background: var(--danger);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    /* Payment Table */
+    .payment-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .payment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+    }
+    
+    .payment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .payment-item.status-paid {
+        background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .payment-item.status-partial {
+        background: rgba(245, 158, 11, 0.05);
+    }
+    
+    .payment-item.status-pending {
+        background: rgba(239, 68, 68, 0.05);
+    }
+    
+    .payment-item.status-missing {
+        background: rgba(239, 68, 68, 0.1);
+        border-left: 3px solid var(--danger);
+    }
+    
+    .payment-month {
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    .payment-status {
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    /* Month Grid */
+    .month-summary {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) { .month-summary { grid-template-columns: repeat(3, 1fr); } }
+    
+    .month-chip {
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: var(--radius);
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .month-chip.paid { background: var(--success); color: white; }
+    .month-chip.partial { background: var(--warning); color: white; }
+    .month-chip.pending { background: var(--danger); color: white; }
+    .month-chip.missing { background: #7f1d1d; color: white; }
+    
+    /* Issues List */
+    .issue-item {
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .issue-item:last-child {
+        border-bottom: none;
+    }
+    
+    .issue-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    
+    /* Checkout Action */
+    .checkout-action {
+        background: var(--surface);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .checkout-action.can-checkout {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .checkout-action.cannot-checkout {
+        border-color: var(--danger);
+        background: rgba(239, 68, 68, 0.05);
+    }
+    
+    .warning-list {
+        background: var(--danger);
+        color: white;
+        padding: 1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        text-align: left;
+    }
+    
+    .warning-list li {
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Checkout Header -->
+<div class="checkout-header">
+    <div class="d-flex align-items-center gap-3">
+        <div class="tenant-avatar-lg">
+            {{ tenant.name|slice:":1"|upper }}
+        </div>
+        <div class="flex-grow-1">
+            <h4 class="mb-1">Checkout: {{ tenant.name }}</h4>
+            <p class="mb-0 opacity-75">
+                <i class="bi bi-geo-alt me-1"></i>
+                {{ building.name }} - {{ location_detail }}
+            </p>
+        </div>
+        <a href="{% url 'properties:tenant_history' tenant.id %}" class="btn btn-outline-light">
+            <i class="bi bi-arrow-left me-1"></i> Back to Profile
+        </a>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="summary-grid">
+    <div class="summary-item">
+        <div class="summary-value text-primary">{{ move_in_date|date:"M d, Y" }}</div>
+        <div class="summary-label">Move-in Date</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-value text-info">{{ total_months_stayed }}</div>
+        <div class="summary-label">Months Stayed</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-value text-success">₹{{ total_rent_paid|floatformat:0 }}</div>
+        <div class="summary-label">Total Paid</div>
+    </div>
+    <div class="summary-item">
+        <div class="summary-value {% if total_dues > 0 %}text-danger{% else %}text-success{% endif %}">
+            ₹{{ total_dues|floatformat:0 }}
+        </div>
+        <div class="summary-label">Total Dues</div>
+    </div>
+</div>
+
+<!-- Notice Period Status -->
+<div class="section-card mb-4">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="bi bi-calendar-x text-warning"></i>
+            Notice Period Status
+        </div>
+        {% if has_given_notice %}
+        <span class="badge {% if is_eligible_for_checkout %}bg-success{% else %}bg-warning{% endif %}">
+            {% if is_eligible_for_checkout %}Eligible for Checkout{% else %}In Notice Period{% endif %}
+        </span>
+        {% else %}
+        <span class="badge bg-secondary">No Notice Given</span>
+        {% endif %}
+    </div>
+    <div class="section-body">
+        {% if has_given_notice %}
+        <div class="row g-3">
+            <div class="col-sm-6 col-md-3">
+                <div class="text-muted small">Notice Date</div>
+                <div class="fw-600">{{ notice_date|date:"d M Y" }}</div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="text-muted small">Expected Checkout</div>
+                <div class="fw-600 {% if is_eligible_for_checkout %}text-success{% else %}text-warning{% endif %}">
+                    {{ expected_checkout_date|date:"d M Y" }}
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="text-muted small">Required Period</div>
+                <div class="fw-600">{{ required_notice_days }} Days</div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="text-muted small">Status</div>
+                <div class="fw-600">
+                    {% if is_eligible_for_checkout %}
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Eligible</span>
+                    {% else %}
+                    <span class="text-warning"><i class="bi bi-clock me-1"></i>{{ days_until_eligible }} days remaining</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% if notice_reason %}
+        <div class="mt-3 p-2 bg-light rounded">
+            <small class="text-muted">Reason: </small>{{ notice_reason }}
+        </div>
+        {% endif %}
+        <div class="mt-3">
+            <a href="{% url 'properties:cancel_notice' tenant.id %}" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-x-circle me-1"></i>Cancel Notice
+            </a>
+        </div>
+        {% else %}
+        <div class="text-center py-3">
+            <div class="mb-3">
+                <i class="bi bi-calendar-x text-muted" style="font-size: 2.5rem;"></i>
+            </div>
+            <p class="text-muted mb-3">
+                Tenant has not given notice yet.<br>
+                <strong>{{ required_notice_days }} days</strong> notice is required for this property.
+            </p>
+            <a href="{% url 'properties:give_notice' tenant.id %}" class="btn btn-warning">
+                <i class="bi bi-calendar-plus me-2"></i>Record Notice
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Auto-generated records notice -->
+{% if records_created > 0 %}
+<div class="alert alert-info mb-4">
+    <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-info-circle-fill"></i>
+        <div>
+            <strong>{{ records_created }} rent record(s) auto-generated</strong>
+            <div class="small">Missing months have been created with PENDING status.</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Rent Breakdown Alert -->
+{% if total_dues > 0 %}
+<div class="alert alert-danger mb-4">
+    <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div>
+            <strong>₹{{ total_dues|floatformat:0 }} Total Pending Dues</strong>
+            <div class="small mt-1">
+                {{ pending_months_count }} month(s) with pending/partial payment
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Month-wise Rent Status -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-calendar-check text-primary"></i>
+                    Month-wise Rent (₹{{ monthly_rent|floatformat:0 }}/month)
+                </div>
+                <span class="badge {% if total_dues == 0 %}bg-success{% else %}bg-danger{% endif %}">
+                    {{ months_with_rent }}/{{ total_months_stayed }} months recorded
+                </span>
+            </div>
+            <div class="section-body">
+                <!-- Quick Overview -->
+                <div class="month-summary mb-3">
+                    {% for m in month_wise_status %}
+                    <div class="month-chip {% if m.status == 'PAID' %}paid{% elif m.status == 'PARTIAL' %}partial{% else %}pending{% endif %}" 
+                         title="{{ m.month|date:'F Y' }}: {{ m.status }}">
+                        {{ m.month|date:"M" }}
+                        {% if m.status == 'PAID' %}<i class="bi bi-check"></i>{% elif m.status == 'PENDING' %}<i class="bi bi-clock"></i>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Detailed List -->
+                <div class="payment-list">
+                    {% for m in month_wise_status reversed %}
+                    <div class="payment-item status-{% if m.status == 'PAID' %}paid{% elif m.status == 'PARTIAL' %}partial{% else %}pending{% endif %}">
+                        <div>
+                            <div class="payment-month">
+                                {{ m.month|date:"F Y" }}
+                            </div>
+                            <small class="text-muted">
+                                Expected: ₹{{ m.amount|floatformat:0 }}
+                            </small>
+                        </div>
+                        <div class="text-end d-flex align-items-center gap-2">
+                            <div>
+                                <div class="fw-semibold {% if m.status == 'PAID' %}text-success{% elif m.status == 'PARTIAL' %}text-warning{% else %}text-danger{% endif %}">
+                                    ₹{{ m.paid_amount|floatformat:0 }}
+                                </div>
+                                <span class="payment-status {% if m.status == 'PAID' %}bg-success-light text-success{% elif m.status == 'PARTIAL' %}bg-warning-light text-warning{% else %}bg-danger-light text-danger{% endif %}">
+                                    {{ m.status }}
+                                    {% if m.pending_amount > 0 %}
+                                    (Due: ₹{{ m.pending_amount|floatformat:0 }})
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if m.status != 'PAID' %}
+                            <a href="{% url 'properties:edit_rent' m.rent_id %}" class="btn btn-sm btn-outline-success" title="Collect Payment">
+                                <i class="bi bi-cash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-inbox"></i>
+                        <p class="mb-0 small">No months to display</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Issues History -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-tools text-warning"></i>
+                    Issues & Complaints
+                </div>
+                {% if open_issues %}
+                <span class="status-warning">{{ open_issues|length }} Open</span>
+                {% else %}
+                <span class="status-ok"><i class="bi bi-check me-1"></i>All Resolved</span>
+                {% endif %}
+            </div>
+            <div class="section-body">
+                {% if all_issues %}
+                {% for issue in all_issues %}
+                <div class="issue-item">
+                    <div class="issue-icon {% if issue.status == 'RESOLVED' %}bg-success-light text-success{% elif issue.priority == 'URGENT' %}bg-danger-light text-danger{% else %}bg-warning-light text-warning{% endif %}">
+                        <i class="bi bi-{% if issue.status == 'RESOLVED' %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold" style="font-size: 0.9rem;">{{ issue.title }}</div>
+                        <small class="text-muted">
+                            {{ issue.raised_date|date:"M d, Y" }} • {{ issue.get_priority_display }}
+                        </small>
+                    </div>
+                    <span class="payment-status {% if issue.status == 'RESOLVED' %}bg-success-light text-success{% elif issue.status == 'OPEN' %}bg-danger-light text-danger{% else %}bg-warning-light text-warning{% endif %}">
+                        {{ issue.get_status_display }}
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-inbox"></i>
+                    <p class="mb-0 small">No issues reported</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Tenant Details -->
+        <div class="section-card mb-3">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-person text-primary"></i>
+                    Tenant Details
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="mb-3">
+                    <small class="text-muted d-block">Name</small>
+                    <strong>{{ tenant.name }}</strong>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted d-block">Phone</small>
+                    <strong>{{ tenant.phone }}</strong>
+                </div>
+                {% if tenant.email %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Email</small>
+                    <strong>{{ tenant.email }}</strong>
+                </div>
+                {% endif %}
+                {% if tenant.emergency_contact %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Emergency Contact</small>
+                    <strong>{{ tenant.emergency_contact }}</strong>
+                </div>
+                {% endif %}
+                <div class="mb-0">
+                    <small class="text-muted d-block">Monthly Rent</small>
+                    <strong>₹{{ monthly_rent|floatformat:0 }}/month</strong>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dues Breakdown -->
+        {% if total_dues > 0 %}
+        <div class="section-card mb-3">
+            <div class="section-header">
+                <div class="section-title text-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    Pending Dues
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Unpaid Months</span>
+                    <strong>{{ pending_months_count }}</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between">
+                    <strong>Total Dues</strong>
+                    <strong class="text-danger">₹{{ total_dues|floatformat:0 }}</strong>
+                </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Click <i class="bi bi-cash"></i> next to pending months to collect payment
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Checkout Action -->
+        <div class="checkout-action {% if can_checkout %}can-checkout{% else %}cannot-checkout{% endif %}">
+            {% if can_checkout %}
+            <div class="mb-3">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+            </div>
+            <h5 class="text-success mb-2">Ready to Checkout</h5>
+            <p class="text-muted small mb-3">All dues cleared and no open issues. Tenant can be checked out.</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg w-100">
+                    <i class="bi bi-box-arrow-right me-2"></i>
+                    Process Checkout
+                </button>
+            </form>
+            {% else %}
+            <div class="mb-3">
+                <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+            </div>
+            <h5 class="text-danger mb-2">Checkout Blocked</h5>
+            
+            <div class="warning-list">
+                <strong class="d-block mb-2"><i class="bi bi-exclamation-circle me-1"></i>Cannot checkout due to:</strong>
+                <ul class="mb-0 ps-3">
+                    {% for warning in checkout_warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <p class="text-muted small mb-3">Please resolve all pending items before checkout.</p>
+            
+            <div class="d-flex gap-2">
+                {% if total_dues > 0 %}
+                <a href="{% url 'properties:add_rent' %}?occupancy={{ current_occupancy.id }}" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-cash-coin me-1"></i> Collect Dues
+                </a>
+                {% endif %}
+                {% if open_issues %}
+                <a href="{% url 'properties:issue_list' %}" class="btn btn-outline-primary flex-grow-1">
+                    <i class="bi bi-tools me-1"></i> View Issues
+                </a>
+                {% endif %}
+            </div>
+            
+            <hr class="my-3">
+            
+            <p class="text-muted small mb-2">
+                <i class="bi bi-info-circle me-1"></i>
+                If tenant must leave despite pending items:
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="force_checkout" value="true">
+                <button type="submit" class="btn btn-outline-danger btn-sm w-100" 
+                        onclick="return confirm('Are you sure? This will checkout the tenant with pending dues/issues. You will need to follow up separately.')">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Force Checkout (Not Recommended)
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

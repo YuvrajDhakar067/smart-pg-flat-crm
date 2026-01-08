@@ -1,0 +1,690 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:"Payment Record" }} - PropertyNest{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        
+        {% if is_flat_rent and not is_edit %}
+        <!-- ==================== FLAT RENT (One payment for whole flat) ==================== -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-house-door me-2"></i>Collect Flat Rent
+                    </h5>
+                    <a href="{% url 'properties:rent_management' %}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- Property Info -->
+                <div class="bg-light rounded p-3 mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded p-3 me-3">
+                                    <i class="bi bi-building fs-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">{{ building.name }}</h5>
+                                    <small class="text-muted">
+                                        Unit {{ unit.unit_number }}
+                                        {% if unit.bhk_type %}
+                                        <span class="badge bg-info ms-1">{{ unit.bhk_type }}</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <small class="text-muted d-block">Monthly Rent</small>
+                            <h3 class="text-primary mb-0">₹{{ flat_rent|floatformat:0 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Residents in Flat -->
+                <div class="mb-4">
+                    <h6 class="mb-2"><i class="bi bi-people me-2"></i>Residents in this Flat ({{ occupant_count }})</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for occ in shared_occupants %}
+                        <div class="badge bg-light text-dark border py-2 px-3">
+                            <i class="bi bi-person-circle me-1"></i>{{ occ.tenant.name }}
+                            {% if occ.is_primary %}
+                            <span class="badge bg-primary ms-1">
+                                <i class="bi bi-star-fill me-1"></i>PRIMARY
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary ms-1">Member</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <small class="text-muted mt-2 d-block">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Rent will be recorded under {{ primary_occupancy.tenant.name }} (primary tenant). 
+                        Other members don't receive separate rent records.
+                    </small>
+                </div>
+                
+                <!-- Payment Form -->
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="flat_rent_entry" value="true">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-month me-1"></i> Rent Month <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="month" class="form-control" 
+                                   value="{{ form.month.initial|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-house-door me-1"></i> Flat Rent Amount <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white">₹</span>
+                                <input type="number" name="flat_rent" id="flatRent" 
+                                       class="form-control" step="0.01" required 
+                                       value="{{ flat_rent|floatformat:0 }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-wallet2 me-1"></i> Payment Status
+                            </label>
+                            <select name="payment_status" id="paymentStatus" class="form-select">
+                                <option value="full">Fully Paid</option>
+                                <option value="partial">Partially Paid</option>
+                                <option value="pending">Not Paid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4" id="paidAmountCol">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-cash me-1"></i> Amount Paid
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white">₹</span>
+                                <input type="number" name="paid_amount" id="paidAmount" 
+                                       class="form-control" step="0.01" value="{{ flat_rent|floatformat:0 }}">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-check me-1"></i> Payment Date
+                            </label>
+                            <input type="date" name="paid_date" id="paidDate" class="form-control" 
+                                   value="{% now 'Y-m-d' %}">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-sticky me-1"></i> Notes (Optional)
+                        </label>
+                        <input type="text" name="notes" class="form-control" 
+                               placeholder="e.g., Cash, UPI, Bank transfer">
+                    </div>
+                    
+                    <div class="border-top pt-3 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Record Flat Rent
+                        </button>
+                        <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flatRentInput = document.getElementById('flatRent');
+            const paidAmountInput = document.getElementById('paidAmount');
+            const paymentStatusSelect = document.getElementById('paymentStatus');
+            const paidAmountCol = document.getElementById('paidAmountCol');
+            const paidDateInput = document.getElementById('paidDate');
+            
+            paymentStatusSelect.addEventListener('change', function() {
+                const flatRent = parseFloat(flatRentInput.value) || 0;
+                
+                if (this.value === 'full') {
+                    paidAmountInput.value = flatRent.toFixed(0);
+                    paidAmountCol.style.display = 'block';
+                } else if (this.value === 'pending') {
+                    paidAmountInput.value = '0';
+                    paidDateInput.value = '';
+                    paidAmountCol.style.display = 'none';
+                } else {
+                    paidAmountInput.value = '';
+                    paidAmountCol.style.display = 'block';
+                }
+            });
+            
+            flatRentInput.addEventListener('input', function() {
+                if (paymentStatusSelect.value === 'full') {
+                    paidAmountInput.value = (parseFloat(this.value) || 0).toFixed(0);
+                }
+            });
+        });
+        </script>
+        
+        {% elif is_pg_room and not is_edit %}
+        <!-- ==================== PG ROOM RENT (Split among beds) ==================== -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-door-open me-2"></i>Collect Room Rent
+                    </h5>
+                    <a href="{% url 'properties:rent_management' %}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- Room Info -->
+                <div class="bg-light rounded p-3 mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-info text-white rounded p-3 me-3">
+                                    <i class="bi bi-door-open fs-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">{{ building.name }}</h5>
+                                    <small class="text-muted">
+                                        Room {{ pg_room.room_number }}
+                                        <span class="badge bg-info ms-1">{{ pg_room.sharing_type }}-Sharing</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                            <div class="d-inline-flex align-items-center bg-white rounded px-3 py-2 border">
+                                <i class="bi bi-people-fill text-info fs-4 me-2"></i>
+                                <div>
+                                    <small class="text-muted d-block">Occupied Beds</small>
+                                    <strong class="fs-5">{{ occupant_count }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rent Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100 border-info">
+                            <div class="card-body text-center">
+                                <small class="text-muted text-uppercase">Total Room Rent</small>
+                                <h2 class="text-info mb-0">₹{{ total_rent|floatformat:0 }}</h2>
+                                <small class="text-muted">per month</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-success">
+                            <div class="card-body text-center">
+                                <small class="text-muted text-uppercase">Per Bed</small>
+                                <h2 class="text-success mb-0">₹{{ per_person_rent|floatformat:0 }}</h2>
+                                <small class="text-muted">each bed pays</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bed Occupants -->
+                <div class="mb-4">
+                    <h6 class="mb-2"><i class="bi bi-people me-2"></i>Occupied Beds</h6>
+                    <div class="row g-2">
+                        {% for occ in shared_occupants %}
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center p-2 bg-white border rounded">
+                                <span class="badge bg-info me-2">{{ occ.bed.bed_number }}</span>
+                                <i class="bi bi-person-circle text-success me-2"></i>
+                                <div class="flex-grow-1">
+                                    <strong style="font-size: 0.9rem;">{{ occ.tenant.name }}</strong>
+                                    <small class="text-muted d-block">₹{{ occ.rent|floatformat:0 }}/mo</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Payment Form -->
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="bulk_entry" value="true">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-month me-1"></i> Rent Month <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="month" class="form-control" 
+                                   value="{{ form.month.initial|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-door-open me-1"></i> Total Room Rent <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-info text-white">₹</span>
+                                <input type="number" name="total_rent" id="totalRent" 
+                                       class="form-control" step="0.01" required 
+                                       value="{{ total_rent|floatformat:0 }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Per Bed Calculation -->
+                    <div class="card bg-success bg-opacity-10 border-success my-3">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <i class="bi bi-calculator me-2 text-success"></i>
+                                    <strong>Per Bed:</strong>
+                                    <span class="fs-5 fw-bold text-success ms-2" id="calcPerBed">₹{{ per_person_rent|floatformat:0 }}</span>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted">Total ÷ {{ occupant_count }} beds</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Payment Status</label>
+                            <select name="payment_status" id="pgPaymentStatus" class="form-select">
+                                <option value="full">Fully Paid</option>
+                                <option value="partial">Partially Paid</option>
+                                <option value="pending">Not Paid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4" id="pgPaidCol">
+                            <label class="form-label fw-semibold">Paid (Per Bed)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white">₹</span>
+                                <input type="number" name="paid_per_person" id="paidPerPerson" 
+                                       class="form-control" step="0.01" value="{{ per_person_rent|floatformat:0 }}">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Payment Date</label>
+                            <input type="date" name="paid_date" id="pgPaidDate" class="form-control" 
+                                   value="{% now 'Y-m-d' %}">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">Notes (Optional)</label>
+                        <input type="text" name="notes" class="form-control" 
+                               placeholder="e.g., Cash, UPI, Bank transfer">
+                    </div>
+                    
+                    <div class="border-top pt-3 mt-4">
+                        <button type="submit" class="btn btn-info btn-lg text-white">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Record Rent for All {{ occupant_count }} Beds
+                        </button>
+                        <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const totalRentInput = document.getElementById('totalRent');
+            const perBedDisplay = document.getElementById('calcPerBed');
+            const paidPerPersonInput = document.getElementById('paidPerPerson');
+            const paymentStatusSelect = document.getElementById('pgPaymentStatus');
+            const paidCol = document.getElementById('pgPaidCol');
+            const paidDateInput = document.getElementById('pgPaidDate');
+            const occupantCount = {{ occupant_count }};
+            
+            function updatePerBed() {
+                const total = parseFloat(totalRentInput.value) || 0;
+                const perBed = total / occupantCount;
+                perBedDisplay.textContent = '₹' + perBed.toFixed(0);
+                
+                if (paymentStatusSelect.value === 'full') {
+                    paidPerPersonInput.value = perBed.toFixed(0);
+                }
+            }
+            
+            totalRentInput.addEventListener('input', updatePerBed);
+            
+            paymentStatusSelect.addEventListener('change', function() {
+                const total = parseFloat(totalRentInput.value) || 0;
+                const perBed = total / occupantCount;
+                
+                if (this.value === 'full') {
+                    paidPerPersonInput.value = perBed.toFixed(0);
+                    paidCol.style.display = 'block';
+                } else if (this.value === 'pending') {
+                    paidPerPersonInput.value = '0';
+                    paidDateInput.value = '';
+                    paidCol.style.display = 'none';
+                } else {
+                    paidPerPersonInput.value = '';
+                    paidCol.style.display = 'block';
+                }
+            });
+        });
+        </script>
+        
+        {% elif is_single_bed %}
+        <!-- ==================== SINGLE BED RENT (Individual PG Payment) ==================== -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-fill me-2"></i>Collect Rent
+                    </h5>
+                    <a href="{% url 'properties:rent_management' %}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- Tenant Info -->
+                <div class="bg-light rounded p-3 mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-success text-white rounded-circle p-3 me-3">
+                                    <i class="bi bi-person-fill fs-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">{{ single_occupancy.tenant.name }}</h5>
+                                    <small class="text-muted">
+                                        <i class="bi bi-telephone me-1"></i>{{ single_occupancy.tenant.phone }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ building.name }} - {{ single_occupancy.bed.room.room_number }}, {{ single_occupancy.bed.bed_number }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <small class="text-muted d-block">Monthly Rent</small>
+                            <h3 class="text-success mb-0">₹{{ single_occupancy.rent|floatformat:0 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Form -->
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="single_bed_rent" value="true">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-month me-1"></i> Rent Month <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" name="month" class="form-control" 
+                                   value="{{ form.month.initial|date:'Y-m-d' }}" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-wallet2 me-1"></i> Payment Status
+                            </label>
+                            <select name="payment_status" id="singleBedPaymentStatus" class="form-select">
+                                <option value="full">Fully Paid</option>
+                                <option value="partial">Partial Payment</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6" id="singleBedPaidCol">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-cash me-1"></i> Paid Amount <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white">₹</span>
+                                <input type="number" name="paid_amount" id="singleBedPaidAmount" 
+                                       class="form-control" step="0.01" required 
+                                       value="{{ single_occupancy.rent|floatformat:0 }}">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-check me-1"></i> Payment Date
+                            </label>
+                            <input type="date" name="paid_date" id="singleBedPaidDate" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark-image me-1"></i> Payment Proof (Optional)
+                        </label>
+                        <input type="file" name="payment_proof" class="form-control" 
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        <small class="text-muted">Upload receipt, screenshot, or bank statement (PDF, JPG, PNG, DOC)</small>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-sticky me-1"></i> Notes (Optional)
+                        </label>
+                        <textarea name="notes" class="form-control" rows="2" 
+                                  placeholder="Any notes about this payment..."></textarea>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Record Payment
+                        </button>
+                        <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentStatusSelect = document.getElementById('singleBedPaymentStatus');
+            const paidAmountInput = document.getElementById('singleBedPaidAmount');
+            const paidDateInput = document.getElementById('singleBedPaidDate');
+            const paidCol = document.getElementById('singleBedPaidCol');
+            const bedRent = {{ single_occupancy.rent|default:0 }};
+            
+            paymentStatusSelect.addEventListener('change', function() {
+                if (this.value === 'full') {
+                    paidAmountInput.value = bedRent.toFixed(0);
+                    paidCol.style.display = 'block';
+                } else if (this.value === 'pending') {
+                    paidAmountInput.value = '0';
+                    paidDateInput.value = '';
+                    paidCol.style.display = 'none';
+                } else {
+                    paidAmountInput.value = '';
+                    paidCol.style.display = 'block';
+                }
+            });
+        });
+        </script>
+        
+        {% else %}
+        <!-- ==================== SINGLE/EDIT PAYMENT FORM ==================== -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white py-2">
+                <h6 class="mb-0"><i class="bi bi-cash-coin me-2"></i>{{ title|default:"Payment Record" }}</h6>
+            </div>
+            <div class="card-body p-3">
+                {% if is_edit %}
+                <!-- Tenant Info Banner for Edit Mode -->
+                <div class="row g-2 mb-3 p-3 bg-light rounded">
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Resident</small>
+                        <strong>{{ tenant.name }}</strong>
+                        <small class="text-muted d-block">{{ tenant.phone }}</small>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Property</small>
+                        <strong>{{ building.name }}</strong>
+                        <small class="text-muted d-block">Unit: {{ unit_number }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">Month</small>
+                        <strong>{{ rent.month|date:"F Y" }}</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Status</small>
+                        {% if rent.status == 'PAID' %}
+                        <span class="badge bg-success">Paid</span>
+                        {% elif rent.status == 'PARTIAL' %}
+                        <span class="badge bg-warning">Partial</span>
+                        {% else %}
+                        <span class="badge bg-danger">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    {% if not is_edit %}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Resident <span class="text-danger">*</span></label>
+                            {{ form.occupancy }}
+                            {% if form.occupancy.errors %}<div class="text-danger small">{{ form.occupancy.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Month <span class="text-danger">*</span></label>
+                            {{ form.month }}
+                            {% if form.month.errors %}<div class="text-danger small">{{ form.month.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Expected Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white">₹</span>
+                                {{ form.amount }}
+                            </div>
+                            {% if form.amount.errors %}<div class="text-danger small">{{ form.amount.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Paid Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white">₹</span>
+                                {{ form.paid_amount }}
+                            </div>
+                            {% if form.paid_amount.errors %}<div class="text-danger small">{{ form.paid_amount.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Payment Date</label>
+                            {{ form.paid_date }}
+                            {% if form.paid_date.errors %}<div class="text-danger small">{{ form.paid_date.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Pending</label>
+                            <div class="p-2 rounded bg-warning-light border">
+                                <span class="fw-bold fs-5" id="pending_amount" style="color: #dc3545;">
+                                    {% if is_edit %}₹{{ rent.pending_amount|floatformat:0 }}{% else %}₹0{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark-image me-1"></i> Payment Proof
+                        </label>
+                        {{ form.payment_proof }}
+                        {% if is_edit and rent.payment_proof %}
+                        <div class="mt-2">
+                            <a href="{{ rent.payment_proof.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-eye me-1"></i>View Current Proof
+                            </a>
+                            <small class="text-muted ms-2">Upload new file to replace</small>
+                        </div>
+                        {% else %}
+                        <small class="text-muted">Upload receipt, screenshot, or bank statement (PDF, JPG, PNG, DOC)</small>
+                        {% endif %}
+                        {% if form.payment_proof.errors %}<div class="text-danger small">{{ form.payment_proof.errors }}</div>{% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                    
+                    <div class="border-top pt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i> {% if is_edit %}Update{% else %}Save{% endif %} Payment
+                        </button>
+                        <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.querySelector('input[name="amount"]');
+    const paidAmountInput = document.querySelector('input[name="paid_amount"]');
+    const pendingSpan = document.getElementById('pending_amount');
+    
+    function calcPending() {
+        if (!amountInput || !paidAmountInput || !pendingSpan) return;
+        const expected = parseFloat(amountInput.value) || 0;
+        const paid = parseFloat(paidAmountInput.value) || 0;
+        const pending = expected - paid;
+        pendingSpan.textContent = '₹' + pending.toFixed(0);
+        pendingSpan.style.color = pending > 0 ? '#dc3545' : (pending === 0 ? '#198754' : '#0d6efd');
+    }
+    
+    if (amountInput && paidAmountInput) {
+        amountInput.addEventListener('input', calcPending);
+        paidAmountInput.addEventListener('input', calcPending);
+        calcPending();
+    }
+});
+</script>
+{% endblock %}

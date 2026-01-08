@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - PropertyNest{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-person-circle"></i> User Profile</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Email:</strong> {{ user.email|default:"Not provided" }}</p>
+                {% if account %}
+                    <hr>
+                    <h5>Account Information</h5>
+                    <p><strong>Account Name:</strong> {{ account.name }}</p>
+                    <p><strong>Phone:</strong> {{ account.phone|default:"Not provided" }}</p>
+                    <p><strong>Address:</strong> {{ account.address|default:"Not provided" }}</p>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No account found. Please contact support.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

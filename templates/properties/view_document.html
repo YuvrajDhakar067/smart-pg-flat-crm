@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ document.get_document_type_display }} - {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .doc-viewer-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-radius: 20px;
+        padding: 1.5rem 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .doc-preview-container {
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+    }
+    
+    .doc-preview-main {
+        background: #1a1a2e;
+        min-height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    
+    .doc-preview-main img {
+        max-width: 100%;
+        max-height: 600px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .doc-preview-main .pdf-preview {
+        width: 100%;
+        height: 600px;
+        border: none;
+        border-radius: 8px;
+    }
+    
+    .doc-preview-main .file-icon {
+        font-size: 6rem;
+        color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .doc-info-card {
+        background: var(--surface);
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        padding: 1.5rem;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: var(--text-primary);
+        text-align: right;
+    }
+    
+    .verification-status {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .verification-status.verified {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+    
+    .verification-status.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+    
+    .verification-status.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+    
+    .verification-status.expired {
+        background: rgba(107, 114, 128, 0.1);
+        color: #6b7280;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="doc-viewer-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-sm btn-light mb-2">
+                <i class="bi bi-arrow-left me-1"></i>Back to Documents
+            </a>
+            <h4 class="mb-1">{{ document.get_document_type_display }}</h4>
+            <p class="mb-0 opacity-90">
+                <i class="bi bi-person me-1"></i>{{ tenant.name }}
+            </p>
+        </div>
+        <div class="action-buttons">
+            <a href="{% url 'properties:view_document' document.id %}?download=1" class="btn btn-light">
+                <i class="bi bi-download me-2"></i>Download
+            </a>
+            {% if document.verification_status == 'PENDING' %}
+            <a href="{% url 'properties:verify_document' document.id %}" class="btn btn-success">
+                <i class="bi bi-check-circle me-2"></i>Verify
+            </a>
+            {% endif %}
+            <a href="{% url 'properties:delete_document' document.id %}" class="btn btn-danger">
+                <i class="bi bi-trash me-2"></i>Delete
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Document Preview -->
+    <div class="col-lg-8 mb-4">
+        <div class="doc-preview-container">
+            <div class="doc-preview-main">
+                {% if document.is_image %}
+                <img src="{{ document.file.url }}" alt="{{ document.get_document_type_display }}">
+                {% elif document.is_pdf %}
+                <iframe src="{{ document.file.url }}" class="pdf-preview"></iframe>
+                {% else %}
+                <div class="text-center text-white">
+                    <i class="bi bi-file-earmark-text file-icon"></i>
+                    <p class="mt-3">Preview not available for this file type</p>
+                    <a href="{% url 'properties:view_document' document.id %}?download=1" class="btn btn-primary">
+                        <i class="bi bi-download me-2"></i>Download to View
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Document Info -->
+    <div class="col-lg-4">
+        <!-- Verification Status -->
+        <div class="doc-info-card mb-3">
+            <h6 class="mb-3">Verification Status</h6>
+            <div class="verification-status {% if document.is_expired %}expired{% else %}{{ document.verification_status|lower }}{% endif %} mb-3">
+                {% if document.is_expired %}
+                <i class="bi bi-exclamation-circle"></i>Document Expired
+                {% elif document.verification_status == 'VERIFIED' %}
+                <i class="bi bi-check-circle"></i>Verified
+                {% elif document.verification_status == 'REJECTED' %}
+                <i class="bi bi-x-circle"></i>Rejected
+                {% else %}
+                <i class="bi bi-clock"></i>Pending Verification
+                {% endif %}
+            </div>
+            
+            {% if document.verified_by %}
+            <div class="small text-muted">
+                <i class="bi bi-person-check me-1"></i>
+                Verified by {{ document.verified_by.username }} on {{ document.verified_at|date:"d M Y" }}
+            </div>
+            {% endif %}
+            
+            {% if document.verification_notes %}
+            <div class="mt-2 p-2 bg-light rounded small">
+                <strong>Notes:</strong> {{ document.verification_notes }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Document Details -->
+        <div class="doc-info-card">
+            <h6 class="mb-3">Document Details</h6>
+            
+            <div class="info-item">
+                <span class="info-label">Document Type</span>
+                <span class="info-value">{{ document.get_document_type_display }}</span>
+            </div>
+            
+            {% if document.document_number %}
+            <div class="info-item">
+                <span class="info-label">Document Number</span>
+                <span class="info-value">{{ document.document_number }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="info-label">File Name</span>
+                <span class="info-value" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;">
+                    {{ document.original_filename }}
+                </span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">File Size</span>
+                <span class="info-value">{{ document.formatted_file_size }}</span>
+            </div>
+            
+            <div class="info-item">
+                <span class="info-label">File Type</span>
+                <span class="info-value">{{ document.file_extension|upper }}</span>
+            </div>
+            
+            {% if document.issue_date %}
+            <div class="info-item">
+                <span class="info-label">Issue Date</span>
+                <span class="info-value">{{ document.issue_date|date:"d M Y" }}</span>
+            </div>
+            {% endif %}
+            
+            {% if document.expiry_date %}
+            <div class="info-item">
+                <span class="info-label">Expiry Date</span>
+                <span class="info-value {% if document.is_expired %}text-danger{% endif %}">
+                    {{ document.expiry_date|date:"d M Y" }}
+                    {% if document.is_expired %}<br><small>(Expired)</small>{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <span class="info-label">Uploaded On</span>
+                <span class="info-value">{{ document.created_at|date:"d M Y, h:i A" }}</span>
+            </div>
+            
+            {% if document.uploaded_by %}
+            <div class="info-item">
+                <span class="info-label">Uploaded By</span>
+                <span class="info-value">{{ document.uploaded_by.username }}</span>
+            </div>
+            {% endif %}
+            
+            {% if document.notes %}
+            <div class="mt-3 p-2 bg-light rounded">
+                <strong class="small">Notes:</strong>
+                <p class="mb-0 small">{{ document.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

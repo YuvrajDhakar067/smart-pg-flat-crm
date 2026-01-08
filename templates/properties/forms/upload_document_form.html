@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Upload Document - {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .form-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+    }
+    
+    .file-upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: var(--background);
+    }
+    
+    .file-upload-zone:hover {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+    }
+    
+    .file-upload-zone.dragover {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.1);
+    }
+    
+    .file-upload-zone.has-file {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .file-upload-zone i {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .file-upload-zone.has-file i {
+        color: var(--success);
+    }
+    
+    .file-name {
+        font-weight: 600;
+        color: var(--success);
+        margin-top: 0.5rem;
+    }
+    
+    .doc-type-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .doc-type-option {
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--background);
+    }
+    
+    .doc-type-option:hover {
+        border-color: var(--primary);
+        background: rgba(99, 102, 241, 0.05);
+    }
+    
+    .doc-type-option.selected {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
+    }
+    
+    .doc-type-option i {
+        font-size: 1.5rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .doc-type-option .name {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .doc-type-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-header">
+    <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-sm btn-light mb-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Documents
+    </a>
+    <h1><i class="bi bi-cloud-upload me-2"></i>Upload Document</h1>
+    <p class="mb-0">Upload a document for {{ tenant.name }}</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="form-card">
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                
+                <!-- Document Type Selection -->
+                <div class="mb-4">
+                    <label class="form-label fw-600 mb-3">Document Type *</label>
+                    <div class="doc-type-grid">
+                        {% for dt in document_types %}
+                        <label class="doc-type-option" data-type="{{ dt.0 }}">
+                            <input type="radio" name="document_type" value="{{ dt.0 }}" 
+                                   {% if request.GET.type == dt.0 %}checked{% endif %}>
+                            <i class="bi bi-{% if dt.0 == 'AADHAAR' %}person-badge{% elif dt.0 == 'PAN' %}credit-card-2-front{% elif dt.0 == 'PASSPORT' %}book{% elif dt.0 == 'DRIVING_LICENSE' %}car-front{% elif dt.0 == 'VOTER_ID' %}card-checklist{% elif dt.0 == 'POLICE_VERIFICATION' %}shield-check{% elif dt.0 == 'RENT_AGREEMENT' %}file-earmark-text{% elif dt.0 == 'PHOTO' %}person-square{% elif dt.0 == 'ADDRESS_PROOF' %}geo-alt{% elif dt.0 == 'EMPLOYMENT_PROOF' %}briefcase{% else %}file-earmark{% endif %}"></i>
+                            <div class="name">{{ dt.1 }}</div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Document Number -->
+                <div class="mb-4">
+                    <label for="document_number" class="form-label fw-600">Document Number (Optional)</label>
+                    <input type="text" class="form-control" id="document_number" name="document_number"
+                           placeholder="e.g., XXXX-XXXX-XXXX for Aadhaar">
+                    <div class="form-text">Enter the ID/reference number on the document</div>
+                </div>
+                
+                <!-- File Upload -->
+                <div class="mb-4">
+                    <label class="form-label fw-600">Upload File *</label>
+                    <div class="file-upload-zone" id="dropZone">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <div>
+                            <strong>Click to upload</strong> or drag and drop
+                        </div>
+                        <div class="text-muted small mt-1">
+                            JPG, PNG, PDF, DOC (Max 10MB)
+                        </div>
+                        <div class="file-name" id="fileName" style="display: none;"></div>
+                        <input type="file" name="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"
+                               style="display: none;">
+                    </div>
+                </div>
+                
+                <!-- Dates -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="issue_date" class="form-label fw-600">Issue Date (Optional)</label>
+                        <input type="date" class="form-control" id="issue_date" name="issue_date">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="expiry_date" class="form-label fw-600">Expiry Date (Optional)</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                        <div class="form-text">For documents with expiry like License, Passport</div>
+                    </div>
+                </div>
+                
+                <!-- Notes -->
+                <div class="mb-4">
+                    <label for="notes" class="form-label fw-600">Notes (Optional)</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="2"
+                              placeholder="Any additional information about this document"></textarea>
+                </div>
+                
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                        <i class="bi bi-cloud-upload me-2"></i>Upload Document
+                    </button>
+                    <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-secondary btn-lg">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="form-card">
+            <h6 class="mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>Document Guidelines</h6>
+            
+            <div class="mb-3">
+                <strong class="text-primary">Accepted Formats:</strong>
+                <ul class="mb-0 small">
+                    <li>Images: JPG, PNG, GIF</li>
+                    <li>Documents: PDF, DOC, DOCX</li>
+                </ul>
+            </div>
+            
+            <div class="mb-3">
+                <strong class="text-primary">Size Limit:</strong>
+                <p class="mb-0 small">Maximum 10MB per file</p>
+            </div>
+            
+            <div class="mb-3">
+                <strong class="text-primary">Tips:</strong>
+                <ul class="mb-0 small">
+                    <li>Ensure document is clear and readable</li>
+                    <li>All corners should be visible</li>
+                    <li>Avoid blurry or dark images</li>
+                    <li>Add document numbers for verification</li>
+                </ul>
+            </div>
+            
+            <hr>
+            
+            <div class="alert alert-info small mb-0">
+                <i class="bi bi-shield-check me-1"></i>
+                Documents are stored securely and only accessible to authorized users.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const docTypeOptions = document.querySelectorAll('.doc-type-option');
+    
+    // Document type selection
+    docTypeOptions.forEach(option => {
+        const radio = option.querySelector('input[type="radio"]');
+        if (radio.checked) {
+            option.classList.add('selected');
+        }
+        
+        option.addEventListener('click', function() {
+            docTypeOptions.forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            this.querySelector('input').checked = true;
+        });
+    });
+    
+    // File upload zone
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileName();
+        }
+    });
+    
+    fileInput.addEventListener('change', updateFileName);
+    
+    function updateFileName() {
+        if (fileInput.files.length) {
+            const file = fileInput.files[0];
+            const size = (file.size / 1024 / 1024).toFixed(2);
+            fileName.textContent = `${file.name} (${size} MB)`;
+            fileName.style.display = 'block';
+            dropZone.classList.add('has-file');
+            dropZone.querySelector('i').className = 'bi bi-check-circle-fill';
+        }
+    }
+});
+</script>
+{% endblock %}
+

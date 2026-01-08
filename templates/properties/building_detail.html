@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ building.name }} - PropertyNest{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-building text-primary"></i> {{ building.name }}</h4>
+        <p class="text-muted mb-0 small">{{ building.address }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'properties:building_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+{% if is_pg_building %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-primary">{{ total_rooms }}</div>
+                <small class="text-muted">Total Rooms</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-success">{{ occupied_beds }}</div>
+                <small class="text-muted">Occupied Beds</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-danger">{{ vacant_beds }}</div>
+                <small class="text-muted">Vacant Beds</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-info">{{ total_beds }}</div>
+                <small class="text-muted">Total Beds</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row g-3 mb-4">
+    <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-primary">{{ total_units }}</div>
+                <small class="text-muted">Total Flats</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-success">{{ occupied }}</div>
+                <small class="text-muted">Occupied</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+                <div class="fs-3 fw-bold text-danger">{{ vacant }}</div>
+                <small class="text-muted">Vacant</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- PG Building: Show Rooms Directly -->
+{% if is_pg_building %}
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="mb-0"><i class="bi bi-door-open text-primary"></i> Rooms & Beds</h6>
+    </div>
+    <div class="card-body p-0">
+        {% for unit_data in units_with_details %}
+            {% if unit_data.unit.unit_type == 'PG' and unit_data.pg_rooms %}
+                {% for room_data in unit_data.pg_rooms %}
+                <div class="border-bottom p-3">
+                    <!-- Room Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary fs-6 px-3 py-2">
+                                <i class="bi bi-door-closed"></i> Room {{ room_data.room.room_number }}
+                            </span>
+                            <span class="badge bg-info">{{ room_data.room.sharing_type }}-Sharing</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success">{{ room_data.occupied_count }} <i class="bi bi-person-fill"></i></span>
+                            <span class="badge bg-secondary">{{ room_data.vacant_count }} Empty</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Beds Grid -->
+                    <div class="row g-2">
+                        {% for bed_data in room_data.beds %}
+                        <div class="col-md-4 col-sm-6">
+                            <div class="border rounded-3 p-2 h-100 {% if bed_data.tenant %}border-success bg-success bg-opacity-10{% else %}bg-light{% endif %}">
+                                <!-- Bed Header -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-semibold small">
+                                        <i class="bi bi-{% if bed_data.tenant %}person-fill text-success{% else %}person text-muted{% endif %}"></i>
+                                        {{ bed_data.bed.bed_number }}
+                                    </span>
+                                    {% if not bed_data.tenant %}
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">
+                                        <i class="bi bi-check-circle"></i> Available
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if bed_data.tenant %}
+                                <!-- Tenant Info -->
+                                <div class="small">
+                                    <div class="fw-semibold text-dark">{{ bed_data.tenant.name }}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-telephone"></i> {{ bed_data.tenant.phone }}
+                                    </div>
+                                    <div class="text-success fw-semibold mt-1" style="font-size: 0.8rem;">₹{{ bed_data.occupancy.rent|floatformat:0 }}/mo</div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        {% if bed_data.has_rent_this_month %}
+                                        <span class="badge bg-success" style="font-size: 0.7rem;"><i class="bi bi-check"></i> Paid</span>
+                                        {% else %}
+                                        <a href="{% url 'properties:add_rent' %}?occupancy={{ bed_data.occupancy.id }}" 
+                                           class="btn btn-sm btn-success py-0 px-2" style="font-size: 0.7rem;">
+                                            <i class="bi bi-cash-coin"></i> Collect
+                                        </a>
+                                        {% endif %}
+                                        <a href="{% url 'properties:tenant_history' bed_data.tenant.id %}" 
+                                           class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <!-- Empty Bed -->
+                                <div class="small">
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        <i class="bi bi-house"></i> Available for rent
+                                    </div>
+                                    <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                                        Rent: <span class="text-secondary">N/A</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <a href="{% url 'properties:add_occupancy_bed' bed_data.bed.id %}" 
+                                           class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.7rem;">
+                                            <i class="bi bi-person-plus"></i> Add Tenant
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% empty %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            No rooms found. Add rooms to this building.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% else %}
+<!-- Flat Building: Show Flats -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="mb-0"><i class="bi bi-door-open text-primary"></i> Flats</h6>
+    </div>
+    <div class="card-body p-0">
+        {% for unit_data in units_with_details %}
+        {% if unit_data.unit.unit_type == 'FLAT' %}
+        <div class="border-bottom p-3">
+            <!-- Flat Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary fs-6 px-3 py-2">
+                        <i class="bi bi-door-open"></i> {{ unit_data.unit.unit_number }}
+                    </span>
+                    {% if unit_data.unit.bhk_type %}
+                    <span class="badge bg-info">{{ unit_data.unit.bhk_type }}</span>
+                    {% endif %}
+                    <span class="badge {% if unit_data.unit.status == 'OCCUPIED' %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ unit_data.unit.get_status_display }}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-semibold">₹{{ unit_data.unit.expected_rent|floatformat:0 }}/mo</span>
+                    {% if unit_data.all_occupancies %}
+                        {% if unit_data.has_rent_this_month %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Rent Paid</span>
+                        {% else %}
+                        <a href="{% url 'properties:add_rent_unit' unit_data.unit.id %}" 
+                           class="btn btn-sm btn-success">
+                            <i class="bi bi-cash-coin"></i> Collect Rent
+                        </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if unit_data.all_occupancies %}
+            <!-- Residents -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-muted">Residents ({{ unit_data.all_occupancies|length }})</small>
+                <a href="{% url 'properties:manage_flat_occupants' unit_data.unit.id %}" 
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-people"></i> Manage
+                </a>
+            </div>
+            <div class="row g-2">
+                {% for occupancy in unit_data.all_occupancies %}
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-2 {% if occupancy.is_primary %}bg-primary bg-opacity-10 border-primary{% else %}bg-success bg-opacity-10 border-success{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="small">
+                                <div class="fw-semibold">
+                                    <i class="bi bi-person-fill {% if occupancy.is_primary %}text-primary{% else %}text-success{% endif %}"></i> 
+                                    {{ occupancy.tenant.name }}
+                                    {% if occupancy.is_primary %}
+                                    <span class="badge bg-primary ms-1" style="font-size: 0.6rem;">PRIMARY</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary ms-1" style="font-size: 0.6rem;">Member</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="bi bi-telephone"></i> {{ occupancy.tenant.phone }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    Since: {{ occupancy.start_date|date:"M d, Y" }}
+                                </div>
+                            </div>
+                            <a href="{% url 'properties:tenant_history' occupancy.tenant.id %}" 
+                               class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size: 0.7rem;">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Vacant -->
+            <div class="text-center py-3 bg-light rounded">
+                <div class="text-muted mb-2"><i class="bi bi-house"></i> Vacant</div>
+                <a href="{% url 'properties:add_occupancy_unit' unit_data.unit.id %}" 
+                   class="btn btn-sm btn-success">
+                    <i class="bi bi-person-plus"></i> Add Tenant
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            No flats found. Add flats to this building.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

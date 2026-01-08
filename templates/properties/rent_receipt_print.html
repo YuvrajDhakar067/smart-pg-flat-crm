@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent Receipt - {{ tenant.name }} - {{ rent.month|date:"F Y" }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+        
+        .receipt-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .receipt-header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .company-name {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .company-address {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .receipt-title {
+            background: #f1f5f9;
+            padding: 20px 30px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .receipt-title h1 {
+            font-size: 24px;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+        
+        .receipt-number {
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 15px;
+            text-transform: uppercase;
+        }
+        
+        .status-paid {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status-partial {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .amount-section {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+        
+        .amount-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #10b981;
+        }
+        
+        .amount-label {
+            color: #64748b;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        
+        .receipt-body {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e40af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        
+        .info-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .payment-details {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        
+        .payment-row:last-child {
+            border-bottom: none;
+            font-weight: 700;
+            font-size: 18px;
+            color: #1e40af;
+            padding-top: 15px;
+            margin-top: 5px;
+            border-top: 2px solid #1e40af;
+        }
+        
+        .payment-row .label {
+            color: #64748b;
+        }
+        
+        .signature-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 45%;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #1e293b;
+            margin-bottom: 10px;
+            padding-top: 10px;
+        }
+        
+        .signature-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .receipt-footer {
+            background: #f1f5f9;
+            padding: 20px 30px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .receipt-container {
+                box-shadow: none;
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+        
+        /* Action Buttons */
+        .action-bar {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #1e40af;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1e3a8a;
+        }
+        
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <!-- Action Bar (hidden on print) -->
+        <div class="action-bar no-print">
+            <a href="{% url 'properties:rent_management' %}" class="btn btn-secondary">
+                ← Back to Rent
+            </a>
+            <a href="{% url 'properties:download_rent_receipt' rent.id %}" class="btn btn-success">
+                📥 Download PDF
+            </a>
+            <button onclick="window.print()" class="btn btn-primary">
+                🖨️ Print Receipt
+            </button>
+        </div>
+        
+        <!-- Header -->
+        <div class="receipt-header">
+            <div class="company-name">{{ account.name }}</div>
+            <div class="company-address">{{ building.address|default:"Property Management Services" }}</div>
+        </div>
+        
+        <!-- Receipt Title -->
+        <div class="receipt-title">
+            <h1>RENT RECEIPT</h1>
+            <div class="receipt-number">{{ receipt_number }}</div>
+            <span class="status-badge status-{% if rent.status == 'PAID' %}paid{% elif rent.status == 'PARTIAL' %}partial{% else %}pending{% endif %}">
+                {% if rent.status == 'PAID' %}✓ PAID{% elif rent.status == 'PARTIAL' %}◐ PARTIAL{% else %}⏳ PENDING{% endif %}
+            </span>
+        </div>
+        
+        <!-- Amount Section -->
+        <div class="amount-section">
+            <div class="amount-value">
+                ₹{% if rent.status == 'PAID' or rent.status == 'PARTIAL' %}{{ rent.paid_amount|floatformat:0 }}{% else %}{{ rent.amount|floatformat:0 }}{% endif %}
+            </div>
+            <div class="amount-label">For {{ rent.month|date:"F Y" }}</div>
+        </div>
+        
+        <!-- Receipt Body -->
+        <div class="receipt-body">
+            <!-- Tenant Details -->
+            <div class="section">
+                <div class="section-title">Tenant Details</div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Name</span>
+                        <span class="info-value">{{ tenant.name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone</span>
+                        <span class="info-value">{{ tenant.phone }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Property</span>
+                        <span class="info-value">{{ building.name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Type</span>
+                        <span class="info-value">{{ property_type }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Location</span>
+                        <span class="info-value">{{ location }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Move-in Date</span>
+                        <span class="info-value">{{ occupancy.start_date|date:"d M Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Details -->
+            <div class="section">
+                <div class="section-title">Payment Details</div>
+                <div class="payment-details">
+                    <div class="payment-row">
+                        <span class="label">Rent Month</span>
+                        <span>{{ rent.month|date:"F Y" }}</span>
+                    </div>
+                    <div class="payment-row">
+                        <span class="label">Expected Amount</span>
+                        <span>₹{{ rent.amount|floatformat:0 }}</span>
+                    </div>
+                    <div class="payment-row">
+                        <span class="label">Amount Paid</span>
+                        <span style="color: #10b981;">₹{{ rent.paid_amount|floatformat:0 }}</span>
+                    </div>
+                    {% if rent.status == 'PARTIAL' %}
+                    <div class="payment-row">
+                        <span class="label">Pending Amount</span>
+                        <span style="color: #ef4444;">₹{{ rent.pending_amount|floatformat:0 }}</span>
+                    </div>
+                    {% endif %}
+                    {% if rent.paid_date %}
+                    <div class="payment-row">
+                        <span class="label">Payment Date</span>
+                        <span>{{ rent.paid_date|date:"d M Y" }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="payment-row">
+                        <span>Total Received</span>
+                        <span>₹{{ rent.paid_amount|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if rent.notes %}
+            <!-- Notes -->
+            <div class="section">
+                <div class="section-title">Notes</div>
+                <p>{{ rent.notes }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- Signatures -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Tenant's Signature</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <div class="signature-label">Authorized Signature</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <p>Generated on {{ generated_at|date:"d M Y, h:i A" }}</p>
+            <p>This is a computer-generated receipt.</p>
+        </div>
+    </div>
+</body>
+</html>
+

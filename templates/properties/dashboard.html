@@ -1,0 +1,626 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Dashboard - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dashboard specific styles */
+    .greeting {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .greeting-sub {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+    
+    .today-date {
+        background: var(--primary);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    /* Priority Cards */
+    .priority-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+    }
+    
+    .priority-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: var(--transition);
+        text-decoration: none;
+        color: inherit;
+        margin-bottom: 0.75rem;
+    }
+    
+    .priority-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateX(4px);
+        border-color: var(--primary);
+        color: inherit;
+    }
+    
+    .priority-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .priority-icon.urgent { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+    .priority-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .priority-icon.info { background: rgba(14, 165, 233, 0.1); color: var(--info); }
+    .priority-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    
+    .priority-content { flex: 1; min-width: 0; }
+    .priority-title { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+    .priority-desc { font-size: 0.8rem; color: var(--text-muted); }
+    .priority-badge { 
+        background: var(--danger); 
+        color: white; 
+        padding: 0.25rem 0.625rem; 
+        border-radius: 50px; 
+        font-size: 0.7rem; 
+        font-weight: 600;
+    }
+    
+    .priority-action {
+        color: var(--primary);
+        font-size: 1.25rem;
+        opacity: 0;
+        transition: var(--transition);
+    }
+    
+    .priority-card:hover .priority-action { opacity: 1; }
+    
+    /* Overview Grid */
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 1200px) { .overview-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px) { .overview-grid { grid-template-columns: 1fr; } }
+    
+    .overview-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        transition: var(--transition);
+    }
+    
+    .overview-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .overview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    
+    .overview-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    
+    .overview-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+    
+    .overview-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-weight: 500;
+    }
+    
+    .overview-footer {
+        margin-top: auto;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border);
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    /* Quick Insights */
+    .insights-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 768px) { .insights-grid { grid-template-columns: 1fr; } }
+    
+    .insight-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+    }
+    
+    .insight-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .insight-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .insight-title i { color: var(--primary); }
+    
+    .insight-body { padding: 1rem 1.25rem; }
+    
+    .insight-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .insight-item:last-child { border-bottom: none; }
+    
+    .insight-item-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .insight-item-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    
+    .insight-item-title { font-weight: 500; font-size: 0.85rem; }
+    .insight-item-sub { font-size: 0.75rem; color: var(--text-muted); }
+    
+    /* Mini Progress */
+    .mini-progress {
+        width: 60px;
+        height: 6px;
+        background: var(--background);
+        border-radius: 50px;
+        overflow: hidden;
+    }
+    
+    .mini-progress-bar {
+        height: 100%;
+        border-radius: 50px;
+        transition: width 0.6s ease;
+    }
+    
+    /* Empty Priority */
+    .empty-priority {
+        text-align: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.1) 100%);
+        border-radius: var(--radius);
+        border: 1px dashed var(--success);
+    }
+    
+    .empty-priority-icon {
+        font-size: 2.5rem;
+        color: var(--success);
+        margin-bottom: 0.75rem;
+    }
+    
+    .empty-priority h5 { color: var(--success); font-weight: 600; }
+    .empty-priority p { color: var(--text-muted); font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="greeting">
+            {% now "H" as current_hour %}
+            {% if current_hour|add:0 < 12 %}Good morning{% elif current_hour|add:0 < 17 %}Good afternoon{% else %}Good evening{% endif %}, {{ user.first_name|default:user.username }}! 👋
+        </h1>
+        <p class="greeting-sub">Here's what's happening with your properties today</p>
+    </div>
+    <div class="today-date">
+        <i class="bi bi-calendar3 me-1"></i>
+        {% now "l, F j, Y" %}
+    </div>
+</div>
+
+<!-- TODAY'S PRIORITIES -->
+<div class="priority-section">
+    <div class="section-title">
+        <i class="bi bi-lightning-charge-fill text-warning"></i>
+        Today's Priorities
+    </div>
+    
+    {% if urgent_issues > 0 or total_vacancies > 0 or pending_rent > 0 %}
+    
+    {% if urgent_issues > 0 %}
+    <a href="{% url 'properties:issue_list' %}?priority=urgent" class="priority-card">
+        <div class="priority-icon urgent">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="priority-content">
+            <div class="priority-title">{{ urgent_issues }} Urgent Maintenance Request{{ urgent_issues|pluralize }}</div>
+            <div class="priority-desc">Needs immediate attention</div>
+        </div>
+        <span class="priority-badge">URGENT</span>
+        <i class="bi bi-arrow-right priority-action"></i>
+    </a>
+    {% endif %}
+    
+    {% if pending_rent > 0 %}
+    <a href="{% url 'properties:rent_management' %}?status=PENDING" class="priority-card">
+        <div class="priority-icon warning">
+            <i class="bi bi-wallet2"></i>
+        </div>
+        <div class="priority-content">
+            <div class="priority-title">{{ pending_payments_count }} Pending Payment{{ pending_payments_count|pluralize }}</div>
+            <div class="priority-desc">₹{{ pending_rent|floatformat:0 }} yet to be collected</div>
+        </div>
+        <i class="bi bi-arrow-right priority-action"></i>
+    </a>
+    {% endif %}
+    
+    {% if total_vacancies > 0 %}
+    <a href="{% url 'properties:vacancy' %}" class="priority-card">
+        <div class="priority-icon info">
+            <i class="bi bi-door-open"></i>
+        </div>
+        <div class="priority-content">
+            <div class="priority-title">{{ total_vacancies }} Vacanc{{ total_vacancies|pluralize:"y,ies" }}</div>
+            <div class="priority-desc">
+                {% if vacant_flats > 0 %}{{ vacant_flats }} flat{{ vacant_flats|pluralize }}{% endif %}
+                {% if vacant_flats > 0 and vacant_beds > 0 %}, {% endif %}
+                {% if vacant_beds > 0 %}{{ vacant_beds }} bed{{ vacant_beds|pluralize }}{% endif %}
+                - ₹{{ vacancy_loss|floatformat:0|default:"0" }}/mo loss
+            </div>
+        </div>
+        <i class="bi bi-arrow-right priority-action"></i>
+    </a>
+    {% endif %}
+    
+    {% if open_issues > 0 and open_issues != urgent_issues %}
+    <a href="{% url 'properties:issue_list' %}" class="priority-card">
+        <div class="priority-icon warning">
+            <i class="bi bi-tools"></i>
+        </div>
+        <div class="priority-content">
+            <div class="priority-title">{{ open_issues }} Open Maintenance Request{{ open_issues|pluralize }}</div>
+            <div class="priority-desc">Awaiting resolution</div>
+        </div>
+        <i class="bi bi-arrow-right priority-action"></i>
+    </a>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-priority">
+        <div class="empty-priority-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <h5>All caught up! 🎉</h5>
+        <p class="mb-0">No urgent tasks. Your properties are running smoothly.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- OVERVIEW STATS -->
+<div class="section-title">
+    <i class="bi bi-grid-1x2-fill text-primary"></i>
+    Portfolio Overview
+</div>
+
+<div class="overview-grid">
+    <div class="overview-card">
+        <div class="overview-header">
+            <div class="overview-icon bg-primary-light text-primary">
+                <i class="bi bi-buildings"></i>
+            </div>
+            <a href="{% url 'properties:building_list' %}" class="btn btn-sm btn-secondary">View</a>
+        </div>
+        <div class="overview-value text-primary">{{ total_buildings|default:0 }}</div>
+        <div class="overview-label">Properties</div>
+        <div class="overview-footer">
+            <i class="bi bi-grid-3x3-gap"></i>
+            {{ total_units|default:0 }} total units
+        </div>
+    </div>
+    
+    <div class="overview-card">
+        <div class="overview-header">
+            <div class="overview-icon bg-success-light text-success">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <a href="{% url 'properties:tenant_list' %}" class="btn btn-sm btn-secondary">View</a>
+        </div>
+        <div class="overview-value text-success">{{ total_tenants|default:0 }}</div>
+        <div class="overview-label">Residents</div>
+        <div class="overview-footer">
+            <i class="bi bi-graph-up-arrow text-success"></i>
+            {{ occupancy_rate|default:0 }}% occupancy
+        </div>
+    </div>
+    
+    <div class="overview-card">
+        <div class="overview-header">
+            <div class="overview-icon bg-warning-light text-warning">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <a href="{% url 'properties:rent_management' %}" class="btn btn-sm btn-secondary">View</a>
+        </div>
+        <div class="overview-value text-warning">₹{{ collected_this_month|floatformat:0|default:"0" }}</div>
+        <div class="overview-label">Collected</div>
+        <div class="overview-footer">
+            <i class="bi bi-percent"></i>
+            {{ collection_rate|default:0 }}% of expected
+        </div>
+    </div>
+    
+    <div class="overview-card">
+        <div class="overview-header">
+            <div class="overview-icon bg-danger-light text-danger">
+                <i class="bi bi-door-open"></i>
+            </div>
+            <a href="{% url 'properties:vacancy' %}" class="btn btn-sm btn-secondary">View</a>
+        </div>
+        <div class="overview-value text-danger">{{ total_vacancies|default:0 }}</div>
+        <div class="overview-label">Total Vacancies</div>
+        <div class="overview-footer">
+            <i class="bi bi-currency-rupee"></i>
+            ₹{{ vacancy_loss|floatformat:0|default:"0" }}/mo loss
+        </div>
+    </div>
+</div>
+
+<!-- INSIGHTS SECTION -->
+<div class="insights-grid">
+    <!-- Accommodation Breakdown -->
+    <div class="insight-card">
+        <div class="insight-header">
+            <div class="insight-title">
+                <i class="bi bi-pie-chart"></i>
+                Accommodation Mix
+            </div>
+        </div>
+        <div class="insight-body">
+            <div class="insight-item">
+                <div class="insight-item-left">
+                    <div class="insight-item-icon bg-primary-light text-primary">
+                        <i class="bi bi-house-door"></i>
+                    </div>
+                    <div>
+                        <div class="insight-item-title">Flats</div>
+                        <div class="insight-item-sub">{{ occupied_flats|default:0 }} of {{ total_flats|default:0 }} occupied</div>
+                    </div>
+                </div>
+                <div class="mini-progress">
+                    {% if total_flats > 0 %}
+                    <div class="mini-progress-bar bg-success" style="width: {{ occupied_flats|div:total_flats|mul:100 }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="insight-item">
+                <div class="insight-item-left">
+                    <div class="insight-item-icon bg-info-light text-info">
+                        <i class="bi bi-bricks"></i>
+                    </div>
+                    <div>
+                        <div class="insight-item-title">PG Beds</div>
+                        <div class="insight-item-sub">{{ occupied_beds|default:0 }} of {{ total_beds|default:0 }} occupied</div>
+                    </div>
+                </div>
+                <div class="mini-progress">
+                    {% if total_beds > 0 %}
+                    <div class="mini-progress-bar bg-info" style="width: {{ occupied_beds|div:total_beds|mul:100 }}%"></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="insight-card">
+        <div class="insight-header">
+            <div class="insight-title">
+                <i class="bi bi-clock-history"></i>
+                Recent Activity
+            </div>
+            <a href="{% url 'properties:issue_list' %}" class="btn btn-sm btn-secondary">See All</a>
+        </div>
+        <div class="insight-body">
+            {% if recent_issues %}
+            {% for issue in recent_issues|slice:":3" %}
+            <div class="insight-item">
+                <div class="insight-item-left">
+                    <div class="insight-item-icon {% if issue.priority == 'URGENT' %}bg-danger-light text-danger{% elif issue.priority == 'HIGH' %}bg-warning-light text-warning{% else %}bg-primary-light text-primary{% endif %}">
+                        <i class="bi bi-{% if issue.status == 'RESOLVED' %}check-circle{% else %}tools{% endif %}"></i>
+                    </div>
+                    <div>
+                        <div class="insight-item-title">{{ issue.title|truncatewords:5 }}</div>
+                        <div class="insight-item-sub">{{ issue.building_name }} • {{ issue.created_at|timesince }} ago</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-inbox"></i>
+                <p class="mb-0 small">No recent activity</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- TOP PERFORMING PROPERTIES -->
+{% if building_performance %}
+<div class="section-title">
+    <i class="bi bi-trophy-fill text-warning"></i>
+    Property Performance
+</div>
+
+<div class="card mb-4">
+    <div class="insight-header">
+        <div class="insight-title">
+            <i class="bi bi-bar-chart"></i>
+            Collection Rate by Property
+        </div>
+        <span class="text-muted small">{{ current_month|date:"F Y" }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 40%">Property</th>
+                    <th class="text-end">Expected</th>
+                    <th class="text-end">Collected</th>
+                    <th style="width: 25%">Progress</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for perf in building_performance|slice:":5" %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="insight-item-icon bg-primary-light text-primary" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <span class="fw-500">{{ perf.building.name }}</span>
+                        </div>
+                    </td>
+                    <td class="text-end">₹{{ perf.expected|floatformat:0 }}</td>
+                    <td class="text-end fw-600 {% if perf.collected >= perf.expected %}text-success{% else %}text-warning{% endif %}">
+                        ₹{{ perf.collected|floatformat:0 }}
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px;">
+                                <div class="progress-bar {% if perf.rate >= 100 %}bg-success{% elif perf.rate >= 75 %}bg-info{% elif perf.rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                     style="width: {{ perf.rate|floatformat:0 }}%"></div>
+                            </div>
+                            <span class="small fw-600" style="width: 45px;">{{ perf.rate|floatformat:0 }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- YOUR PROPERTIES -->
+{% if recent_buildings %}
+<div class="section-title">
+    <i class="bi bi-buildings text-primary"></i>
+    Your Properties
+</div>
+
+<div class="row g-3 mb-4">
+    {% for building in recent_buildings|slice:":4" %}
+    <div class="col-md-6 col-lg-3">
+        <a href="{% url 'properties:building_detail' building.id %}" class="card h-100 text-decoration-none">
+            <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div class="overview-icon bg-primary-light text-primary" style="width: 36px; height: 36px;">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <span class="badge {% if building.vacant_count == 0 %}badge-success{% else %}badge-warning{% endif %}">
+                        {{ building.occupied_count }}/{{ building.unit_count }}
+                    </span>
+                </div>
+                <h6 class="fw-600 mb-1">{{ building.name }}</h6>
+                <p class="text-muted small mb-0">{{ building.address|truncatewords:6 }}</p>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animate numbers on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Add staggered animation to cards
+    document.querySelectorAll('.overview-card, .priority-card, .insight-card').forEach((card, i) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.4s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 50 * i);
+    });
+});
+</script>
+{% endblock %}

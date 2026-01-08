@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Notice Period - {{ building.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        max-width: 500px;
+        margin: 2rem auto;
+    }
+    
+    .building-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .notice-presets {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    
+    .preset-btn {
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--background);
+        color: var(--text-primary);
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .preset-btn:hover, .preset-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <div class="building-icon">
+        <i class="bi bi-building"></i>
+    </div>
+    
+    <h4 class="text-center mb-2">{{ building.name }}</h4>
+    <p class="text-center text-muted mb-4">Update notice period requirement</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="notice_period_days" class="form-label fw-600">Notice Period (Days) *</label>
+            <input type="number" 
+                   class="form-control form-control-lg" 
+                   id="notice_period_days" 
+                   name="notice_period_days"
+                   value="{{ building.notice_period_days }}"
+                   min="0"
+                   max="365"
+                   required>
+            <div class="form-text">Number of days tenants must give notice before checkout.</div>
+            
+            <div class="notice-presets">
+                <button type="button" class="preset-btn" data-days="0">No Notice</button>
+                <button type="button" class="preset-btn" data-days="7">7 Days</button>
+                <button type="button" class="preset-btn" data-days="15">15 Days</button>
+                <button type="button" class="preset-btn" data-days="30">30 Days</button>
+                <button type="button" class="preset-btn" data-days="60">60 Days</button>
+                <button type="button" class="preset-btn" data-days="90">90 Days</button>
+            </div>
+        </div>
+        
+        <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+                <i class="bi bi-check2 me-2"></i>Update
+            </button>
+            <a href="{% url 'properties:building_detail' building.id %}" class="btn btn-secondary btn-lg">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('notice_period_days');
+    const presetBtns = document.querySelectorAll('.preset-btn');
+    
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            input.value = this.dataset.days;
+            presetBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+    
+    // Highlight current preset
+    presetBtns.forEach(btn => {
+        if (btn.dataset.days === input.value) {
+            btn.classList.add('active');
+        }
+    });
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+
+{% block title %}Properties - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .page-subtitle {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+    
+    .property-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: var(--transition);
+        height: 100%;
+    }
+    
+    .property-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-4px);
+        border-color: var(--primary);
+    }
+    
+    .property-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
+    }
+    
+    .property-type-badge {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    
+    .property-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .property-address {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .property-body {
+        padding: 1.25rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-box {
+        background: var(--background);
+        border-radius: var(--radius);
+        padding: 0.75rem;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-top: 0.25rem;
+    }
+    
+    .occupancy-bar {
+        height: 6px;
+        background: var(--background);
+        border-radius: 50px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+    
+    .occupancy-fill {
+        height: 100%;
+        border-radius: 50px;
+        transition: width 0.6s ease;
+    }
+    
+    .occupancy-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .property-actions {
+        display: flex;
+        gap: 0.5rem;
+        padding-top: 1rem;
+        border-top: 1px dashed var(--border);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--surface);
+        border: 2px dashed var(--border);
+        border-radius: var(--radius-lg);
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-text {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .filter-bar .form-control,
+    .filter-bar .form-select {
+        max-width: 200px;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) {
+        .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 576px) {
+        .summary-cards { grid-template-columns: 1fr; }
+        .filter-bar { flex-direction: column; }
+        .filter-bar .form-control,
+        .filter-bar .form-select { max-width: 100%; }
+    }
+    
+    .summary-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+        <h1 class="page-title"><i class="bi bi-buildings text-primary me-2"></i>My Properties</h1>
+        <p class="page-subtitle mb-0">Manage all your properties, units, and rooms in one place</p>
+    </div>
+    <a href="{% url 'properties:add_building' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Add Property
+    </a>
+</div>
+
+<!-- Summary Cards -->
+{% if buildings %}
+<div class="summary-cards">
+    <div class="summary-card">
+        <div class="summary-icon bg-primary-light text-primary">
+            <i class="bi bi-buildings"></i>
+        </div>
+        <div>
+            <div class="summary-value">{{ buildings|length }}</div>
+            <div class="summary-label">Total Properties</div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon bg-success-light text-success">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div>
+            <div class="summary-value text-success">{{ total_occupied|default:0 }}</div>
+            <div class="summary-label">Occupied Units</div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon bg-warning-light text-warning">
+            <i class="bi bi-door-open"></i>
+        </div>
+        <div>
+            <div class="summary-value text-warning">{{ total_vacant|default:0 }}</div>
+            <div class="summary-label">Vacant Units</div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-icon bg-info-light text-info">
+            <i class="bi bi-percent"></i>
+        </div>
+        <div>
+            <div class="summary-value text-info">{{ avg_occupancy|default:0 }}%</div>
+            <div class="summary-label">Avg Occupancy</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search/Filter Bar -->
+<div class="filter-bar">
+    <div class="flex-grow-1">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+            <input type="text" class="form-control border-start-0" id="searchProperty" 
+                   placeholder="Search properties..." onkeyup="filterProperties()">
+        </div>
+    </div>
+    <select class="form-select" id="filterType" onchange="filterProperties()">
+        <option value="">All Types</option>
+        <option value="pg">PG Only</option>
+        <option value="flat">Flats Only</option>
+    </select>
+    <select class="form-select" id="filterStatus" onchange="filterProperties()">
+        <option value="">All Status</option>
+        <option value="full">Fully Occupied</option>
+        <option value="partial">Partially Occupied</option>
+        <option value="vacant">Has Vacancies</option>
+    </select>
+</div>
+{% endif %}
+
+<!-- Properties Grid -->
+<div class="row g-4" id="propertiesGrid">
+    {% for building in buildings %}
+    <div class="col-md-6 col-lg-4 property-item" 
+         data-name="{{ building.name|lower }}" 
+         data-type="{% if building.is_pg %}pg{% else %}flat{% endif %}"
+         data-status="{% if building.vacant_count == 0 and building.vacant_bed_count == 0 %}full{% elif building.occupied_count == 0 and building.occupied_bed_count == 0 %}vacant{% else %}partial{% endif %}">
+        <div class="property-card">
+            <div class="property-header">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    {% if building.is_pg %}
+                    <span class="property-type-badge bg-info-light text-info">
+                        <i class="bi bi-house-door me-1"></i>PG
+                    </span>
+                    {% else %}
+                    <span class="property-type-badge bg-primary-light text-primary">
+                        <i class="bi bi-building me-1"></i>Flats
+                    </span>
+                    {% endif %}
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'properties:building_detail' building.id %}">
+                                <i class="bi bi-eye me-2"></i>View Details
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete('{{ building.id }}', '{{ building.name }}'); return false;">
+                                <i class="bi bi-trash me-2"></i>Delete
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+                <h5 class="property-name">{{ building.name }}</h5>
+                <p class="property-address mb-0">
+                    <i class="bi bi-geo-alt"></i>
+                    {{ building.address|truncatewords:8 }}
+                </p>
+            </div>
+            
+            <div class="property-body">
+                {% if building.is_pg %}
+                <!-- PG Stats -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number text-primary">{{ building.room_count }}</div>
+                        <div class="stat-label">Rooms</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-info">{{ building.bed_count }}</div>
+                        <div class="stat-label">Total Beds</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-success">{{ building.occupied_bed_count }}</div>
+                        <div class="stat-label">Occupied</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-danger">{{ building.vacant_bed_count }}</div>
+                        <div class="stat-label">Available</div>
+                    </div>
+                </div>
+                
+                <!-- Occupancy Bar -->
+                <div class="occupancy-bar">
+                    {% if building.bed_count > 0 %}
+                    {% widthratio building.occupied_bed_count building.bed_count 100 as occ_percent %}
+                    <div class="occupancy-fill {% if occ_percent >= 80 %}bg-success{% elif occ_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                         style="width: {{ occ_percent }}%"></div>
+                    {% endif %}
+                </div>
+                <div class="occupancy-text">
+                    <span>Bed Occupancy</span>
+                    <span class="fw-semibold">
+                        {% if building.bed_count > 0 %}
+                        {% widthratio building.occupied_bed_count building.bed_count 100 %}%
+                        {% else %}0%{% endif %}
+                    </span>
+                </div>
+                {% else %}
+                <!-- Flat Stats -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-number text-primary">{{ building.unit_count }}</div>
+                        <div class="stat-label">Total Flats</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-success">{{ building.occupied_count }}</div>
+                        <div class="stat-label">Occupied</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-danger">{{ building.vacant_count }}</div>
+                        <div class="stat-label">Vacant</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number text-info">{{ building.total_floors|default:"-" }}</div>
+                        <div class="stat-label">Floors</div>
+                    </div>
+                </div>
+                
+                <!-- Occupancy Bar -->
+                <div class="occupancy-bar">
+                    {% if building.unit_count > 0 %}
+                    {% widthratio building.occupied_count building.unit_count 100 as occ_percent %}
+                    <div class="occupancy-fill {% if occ_percent >= 80 %}bg-success{% elif occ_percent >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                         style="width: {{ occ_percent }}%"></div>
+                    {% endif %}
+                </div>
+                <div class="occupancy-text">
+                    <span>Unit Occupancy</span>
+                    <span class="fw-semibold">
+                        {% if building.unit_count > 0 %}
+                        {% widthratio building.occupied_count building.unit_count 100 %}%
+                        {% else %}0%{% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                
+                <!-- Actions -->
+                <div class="property-actions">
+                    <a href="{% url 'properties:building_detail' building.id %}" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-arrow-right me-1"></i> Manage
+                    </a>
+                    <a href="{% url 'properties:vacancy' %}?building={{ building.id }}" class="btn btn-outline-secondary" title="View Vacancies">
+                        <i class="bi bi-door-open"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <!-- Empty State -->
+    <div class="col-12">
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-buildings"></i>
+            </div>
+            <h3 class="empty-title">No Properties Yet</h3>
+            <p class="empty-text">Start by adding your first property. You can add flats, PG accommodations, or mixed properties.</p>
+            <a href="{% url 'properties:add_building' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-lg me-2"></i> Add Your First Property
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- No Results State -->
+<div class="empty-state" id="noResults" style="display: none;">
+    <div class="empty-icon">
+        <i class="bi bi-search"></i>
+    </div>
+    <h3 class="empty-title">No Properties Found</h3>
+    <p class="empty-text mb-0">Try adjusting your search or filter criteria.</p>
+</div>
+
+{% include 'properties/pagination.html' %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 pb-4">
+                <div class="text-danger mb-3">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="mb-2">Delete Property?</h5>
+                <p class="text-muted mb-3">
+                    Are you sure you want to delete <strong id="propertyName"></strong>?
+                </p>
+                <div class="alert alert-danger py-2 small">
+                    <i class="bi bi-warning me-1"></i>
+                    This will permanently delete all units, rooms, beds, tenants, and rent records.
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash me-1"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(buildingId, buildingName) {
+    document.getElementById('propertyName').textContent = buildingName;
+    document.getElementById('deleteForm').action = '/buildings/' + buildingId + '/delete/';
+    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+
+function filterProperties() {
+    const searchTerm = document.getElementById('searchProperty').value.toLowerCase();
+    const filterType = document.getElementById('filterType').value;
+    const filterStatus = document.getElementById('filterStatus').value;
+    
+    const items = document.querySelectorAll('.property-item');
+    let visibleCount = 0;
+    
+    items.forEach(item => {
+        const name = item.dataset.name;
+        const type = item.dataset.type;
+        const status = item.dataset.status;
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesType = !filterType || type === filterType;
+        const matchesStatus = !filterStatus || status === filterStatus;
+        
+        if (matchesSearch && matchesType && matchesStatus) {
+            item.style.display = '';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('noResults').style.display = visibleCount === 0 ? '' : 'none';
+}
+
+// Animate cards on load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.property-card, .summary-card').forEach((card, i) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            card.style.transition = 'all 0.4s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, 50 * i);
+    });
+});
+</script>
+{% endblock %}

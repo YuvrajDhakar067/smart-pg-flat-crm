@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Give Notice - {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notice-header {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .notice-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+    }
+    
+    .info-card {
+        background: var(--background);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .notice-period-badge {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: inline-block;
+    }
+    
+    .expected-date {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .expected-date .label {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+    
+    .expected-date .date {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notice-header">
+    <a href="{% url 'properties:tenant_history' tenant.id %}" class="btn btn-sm btn-light mb-3">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+    <h1><i class="bi bi-calendar-x me-2"></i>Give Notice to Vacate</h1>
+    <p class="mb-0">Record notice for {{ tenant.name }}</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <!-- Tenant Info -->
+        <div class="form-card mb-4">
+            <h5 class="mb-3"><i class="bi bi-person me-2 text-primary"></i>Tenant Details</h5>
+            <div class="info-card">
+                <div class="info-item">
+                    <span class="info-label">Name</span>
+                    <span class="info-value">{{ tenant.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">{{ tenant.phone }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Property</span>
+                    <span class="info-value">{{ building.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Location</span>
+                    <span class="info-value">{{ location_detail }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Move-in Date</span>
+                    <span class="info-value">{{ current_occupancy.start_date|date:"d M Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Monthly Rent</span>
+                    <span class="info-value">₹{{ current_occupancy.rent|floatformat:0|intcomma }}</span>
+                </div>
+            </div>
+            
+            <div class="text-center mt-3">
+                <div class="text-muted mb-2">Required Notice Period</div>
+                <div class="notice-period-badge">
+                    <i class="bi bi-clock me-1"></i>{{ required_notice_days }} Days
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="form-card">
+            <h5 class="mb-4"><i class="bi bi-calendar-plus me-2 text-warning"></i>Record Notice</h5>
+            
+            <form method="post" id="noticeForm">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="notice_date" class="form-label fw-600">Notice Date *</label>
+                    <input type="date" 
+                           class="form-control form-control-lg" 
+                           id="notice_date" 
+                           name="notice_date" 
+                           value="{{ today|date:'Y-m-d' }}"
+                           max="{{ today|date:'Y-m-d' }}"
+                           required>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Date when tenant informed about leaving. Can be today or a past date.
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="notice_reason" class="form-label fw-600">Reason for Leaving (Optional)</label>
+                    <textarea class="form-control" 
+                              id="notice_reason" 
+                              name="notice_reason" 
+                              rows="3"
+                              placeholder="e.g., Job relocation, personal reasons, etc."></textarea>
+                </div>
+                
+                <div class="expected-date" id="expectedDateCard">
+                    <div class="label">Expected Checkout Date</div>
+                    <div class="date" id="expectedDate">-</div>
+                    <div class="mt-2 small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Tenant will be eligible for checkout after this date
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-3 mt-4">
+                    <button type="submit" class="btn btn-warning btn-lg flex-grow-1">
+                        <i class="bi bi-calendar-check me-2"></i>Record Notice
+                    </button>
+                    <a href="{% url 'properties:tenant_history' tenant.id %}" class="btn btn-secondary btn-lg">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const noticeDateInput = document.getElementById('notice_date');
+    const expectedDateEl = document.getElementById('expectedDate');
+    const noticePeriodDays = {{ required_notice_days }};
+    
+    function updateExpectedDate() {
+        const noticeDate = new Date(noticeDateInput.value);
+        if (noticeDate && !isNaN(noticeDate)) {
+            const expectedDate = new Date(noticeDate);
+            expectedDate.setDate(expectedDate.getDate() + noticePeriodDays);
+            
+            const options = { day: 'numeric', month: 'short', year: 'numeric' };
+            expectedDateEl.textContent = expectedDate.toLocaleDateString('en-IN', options);
+        }
+    }
+    
+    noticeDateInput.addEventListener('change', updateExpectedDate);
+    updateExpectedDate(); // Initial calculation
+});
+</script>
+{% endblock %}
+

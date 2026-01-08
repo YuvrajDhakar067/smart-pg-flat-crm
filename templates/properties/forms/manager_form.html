@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+    }
+    
+    .form-body {
+        padding: 1.5rem;
+    }
+    
+    .form-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .building-checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .building-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .building-checkbox:hover {
+        border-color: var(--primary);
+        background: rgba(37, 99, 235, 0.05);
+    }
+    
+    .building-checkbox input:checked + .checkbox-content {
+        color: var(--primary);
+    }
+    
+    .building-checkbox.selected {
+        border-color: var(--primary);
+        background: rgba(37, 99, 235, 0.1);
+    }
+    
+    .checkbox-content {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .building-name {
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    
+    .building-units {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    
+    .select-all-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--background);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+    }
+    
+    .password-hint {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'properties:team_management' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Team
+    </a>
+</div>
+
+<div class="form-card">
+    <div class="form-header">
+        <h4 class="mb-1"><i class="bi bi-person-plus text-primary me-2"></i>{{ title }}</h4>
+        <p class="text-muted mb-0 small">Create a new manager account and assign building access</p>
+    </div>
+    
+    <div class="form-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Account Details -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-person me-1"></i> Account Details
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                        <input type="text" name="username" class="form-control" required 
+                               placeholder="manager_username" pattern="[a-zA-Z0-9_]+" 
+                               title="Only letters, numbers, and underscores">
+                        <div class="form-text">Used for login</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" name="email" class="form-control" placeholder="manager@example.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6">
+                        <div class="password-hint">Minimum 6 characters</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" name="confirm_password" class="form-control" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Phone</label>
+                        <input type="tel" name="phone" class="form-control" placeholder="+91 98765 43210">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Building Access -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-building me-1"></i> Building Access
+                </div>
+                
+                <div class="select-all-bar">
+                    <span class="small text-muted">
+                        Select buildings this manager can access
+                    </span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" onclick="selectAllBuildings()">
+                            Select All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="deselectAllBuildings()">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+                
+                {% if all_buildings %}
+                <div class="building-checkbox-grid">
+                    {% for building in all_buildings %}
+                    <label class="building-checkbox" id="building-label-{{ building.id }}">
+                        <input type="checkbox" name="buildings" value="{{ building.id }}" 
+                               class="form-check-input" onchange="toggleBuildingSelection(this, {{ building.id }})">
+                        <div class="checkbox-content">
+                            <span class="building-name">{{ building.name }}</span>
+                            <span class="building-units">{{ building.total_units }} units</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    No buildings available. Add buildings first.
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Actions -->
+            <div class="d-flex gap-2 justify-content-end pt-3 border-top">
+                <a href="{% url 'properties:team_management' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-1"></i> Create Manager
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function selectAllBuildings() {
+    document.querySelectorAll('input[name="buildings"]').forEach(cb => {
+        cb.checked = true;
+        document.getElementById('building-label-' + cb.value).classList.add('selected');
+    });
+}
+
+function deselectAllBuildings() {
+    document.querySelectorAll('input[name="buildings"]').forEach(cb => {
+        cb.checked = false;
+        document.getElementById('building-label-' + cb.value).classList.remove('selected');
+    });
+}
+
+function toggleBuildingSelection(checkbox, buildingId) {
+    const label = document.getElementById('building-label-' + buildingId);
+    if (checkbox.checked) {
+        label.classList.add('selected');
+    } else {
+        label.classList.remove('selected');
+    }
+}
+</script>
+{% endblock %}
+

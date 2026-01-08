@@ -1,0 +1,563 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tenant.name }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    
+    .avatar-lg {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    
+    .profile-contact {
+        opacity: 0.9;
+        font-size: 0.9rem;
+    }
+    
+    .profile-status {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 576px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-align: center;
+    }
+    
+    .stat-card-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .stat-card-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    /* Section Card */
+    .section-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        padding: 0.875rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .section-body {
+        padding: 1rem;
+    }
+    
+    /* Table */
+    .history-table {
+        margin-bottom: 0;
+    }
+    
+    .history-table th {
+        background: var(--background);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.625rem 1rem;
+        border: none;
+    }
+    
+    .history-table td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.875rem;
+    }
+    
+    .history-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .history-table tbody tr:hover {
+        background: var(--background);
+    }
+    
+    /* Issue Item */
+    .issue-item {
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .issue-item:last-child {
+        border-bottom: none;
+    }
+    
+    .issue-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    
+    /* Action Buttons */
+    .action-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="profile-header">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar-lg">
+                {{ tenant.name|slice:":1"|upper }}
+            </div>
+            <div>
+                <h1 class="profile-name">{{ tenant.name }}</h1>
+                <div class="profile-contact">
+                    <i class="bi bi-telephone me-1"></i> {{ tenant.phone }}
+                    {% if tenant.email %}
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-envelope me-1"></i> {{ tenant.email }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% for occ in occupancies %}
+                {% if occ.is_active %}
+                <span class="profile-status">
+                    <i class="bi bi-check-circle me-1"></i> Active Tenant
+                </span>
+                {% endif %}
+            {% endfor %}
+            <a href="{% url 'properties:tenant_list' %}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-value text-success">₹{{ total_rent_paid|floatformat:0 }}</div>
+        <div class="stat-card-label">Total Paid</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-value {% if total_pending > 0 %}text-danger{% else %}text-success{% endif %}">
+            ₹{{ total_pending|floatformat:0 }}
+        </div>
+        <div class="stat-card-label">Pending Dues</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-value text-primary">{{ all_rents|length }}</div>
+        <div class="stat-card-label">Rent Records</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-card-value text-warning">{{ issues|length }}</div>
+        <div class="stat-card-label">Issues Raised</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Current Occupancy -->
+        {% for occupancy in occupancies %}
+        {% if occupancy.is_active %}
+        <div class="section-card mb-3">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-house-door text-success"></i>
+                    Current Residence
+                </div>
+                <span class="badge bg-success">Active</span>
+            </div>
+            <div class="section-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Property</small>
+                            <strong>
+                                {% if occupancy.unit %}
+                                {{ occupancy.unit.building.name }}
+                                {% elif occupancy.bed %}
+                                {{ occupancy.bed.room.unit.building.name }}
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Location</small>
+                            <strong>
+                                {% if occupancy.unit %}
+                                Unit {{ occupancy.unit.unit_number }}
+                                {% if occupancy.unit.bhk_type %}({{ occupancy.unit.bhk_type }}){% endif %}
+                                {% elif occupancy.bed %}
+                                Room {{ occupancy.bed.room.room_number }}, Bed {{ occupancy.bed.bed_number }}
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Move-in Date</small>
+                            <strong>{{ occupancy.start_date|date:"d M Y" }}</strong>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Monthly Rent</small>
+                            <strong class="text-success">₹{{ occupancy.rent|floatformat:0 }}</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Checkout Button -->
+                <div class="mt-3 pt-3 border-top">
+                    <a href="{% url 'properties:tenant_checkout' tenant.id %}" class="btn btn-warning">
+                        <i class="bi bi-box-arrow-right me-1"></i> Checkout Tenant
+                    </a>
+                    <small class="text-muted ms-2">Review history and process checkout</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        
+        <!-- Rent Payment History -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-cash-stack text-primary"></i>
+                    Payment History
+                </div>
+            </div>
+            {% if all_rents %}
+            <div class="table-responsive">
+                <table class="table history-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rent in all_rents %}
+                        <tr>
+                            <td>
+                                <strong>{{ rent.month|date:"F Y" }}</strong>
+                                {% if rent.paid_date %}
+                                <br><small class="text-muted">Paid: {{ rent.paid_date|date:"d M" }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">₹{{ rent.amount|floatformat:0 }}</td>
+                            <td class="text-end">
+                                <span class="{% if rent.status == 'PAID' %}text-success{% else %}text-warning{% endif %}">
+                                    ₹{{ rent.paid_amount|floatformat:0 }}
+                                </span>
+                                {% if rent.pending_amount > 0 %}
+                                <br><small class="text-danger">Due: ₹{{ rent.pending_amount|floatformat:0 }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if rent.status == 'PAID' %}
+                                <span class="badge bg-success-light text-success">Paid</span>
+                                {% elif rent.status == 'PARTIAL' %}
+                                <span class="badge bg-warning-light text-warning">Partial</span>
+                                {% else %}
+                                <span class="badge bg-danger-light text-danger">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{% url 'properties:print_rent_receipt' rent.id %}" 
+                                       class="action-btn btn btn-sm btn-outline-primary" target="_blank" title="View Receipt">
+                                        <i class="bi bi-receipt"></i>
+                                    </a>
+                                    <a href="{% url 'properties:download_rent_receipt' rent.id %}" 
+                                       class="action-btn btn btn-sm btn-outline-success" title="Download PDF">
+                                        <i class="bi bi-file-pdf"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="section-body text-center text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <p class="mb-0">No payment records found</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Occupancy History -->
+        {% if occupancies|length > 1 or not occupancies.0.is_active %}
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-clock-history text-info"></i>
+                    Occupancy History
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table history-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Period</th>
+                            <th class="text-end">Rent</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for occupancy in occupancies %}
+                        <tr>
+                            <td>
+                                <strong>
+                                    {% if occupancy.unit %}
+                                    {{ occupancy.unit.building.name }} - {{ occupancy.unit.unit_number }}
+                                    {% elif occupancy.bed %}
+                                    {{ occupancy.bed.room.unit.building.name }} - R{{ occupancy.bed.room.room_number }}/B{{ occupancy.bed.bed_number }}
+                                    {% endif %}
+                                </strong>
+                            </td>
+                            <td>
+                                {{ occupancy.start_date|date:"d M Y" }}
+                                <br>
+                                <small class="text-muted">
+                                    {% if occupancy.end_date %}
+                                    to {{ occupancy.end_date|date:"d M Y" }}
+                                    {% else %}
+                                    to Present
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td class="text-end">₹{{ occupancy.rent|floatformat:0 }}</td>
+                            <td class="text-center">
+                                {% if occupancy.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Ended</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Contact Info -->
+        <div class="section-card mb-3">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-person-lines-fill text-primary"></i>
+                    Contact Details
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="mb-3">
+                    <small class="text-muted d-block">Phone</small>
+                    <strong>
+                        <a href="tel:{{ tenant.phone }}" class="text-decoration-none">
+                            <i class="bi bi-telephone me-1"></i>{{ tenant.phone }}
+                        </a>
+                    </strong>
+                </div>
+                {% if tenant.email %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Email</small>
+                    <strong>
+                        <a href="mailto:{{ tenant.email }}" class="text-decoration-none">
+                            <i class="bi bi-envelope me-1"></i>{{ tenant.email }}
+                        </a>
+                    </strong>
+                </div>
+                {% endif %}
+                {% if tenant.address %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Permanent Address</small>
+                    <strong>{{ tenant.address }}</strong>
+                </div>
+                {% endif %}
+                {% if tenant.emergency_contact %}
+                <div class="mb-3">
+                    <small class="text-muted d-block">Emergency Contact</small>
+                    <strong>{{ tenant.emergency_contact }}</strong>
+                </div>
+                {% endif %}
+                {% if tenant.id_proof_type %}
+                <div class="mb-0">
+                    <small class="text-muted d-block">ID Proof</small>
+                    <strong>{{ tenant.id_proof_type }}</strong>
+                    {% if tenant.id_proof_number %}
+                    <br><small class="text-muted">{{ tenant.id_proof_number }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Documents -->
+        <div class="section-card mb-3">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-folder2-open text-purple"></i>
+                    Documents
+                </div>
+                <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-sm btn-outline-primary">
+                    Manage
+                </a>
+            </div>
+            <div class="section-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <div class="fw-bold fs-4">{{ tenant.document_count }}</div>
+                        <small class="text-muted">Total Documents</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold fs-4 text-success">{{ tenant.verified_documents }}</div>
+                        <small class="text-muted">Verified</small>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'properties:upload_document' tenant.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-cloud-upload me-1"></i>Upload Document
+                    </a>
+                    <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-eye me-1"></i>View All Documents
+                    </a>
+                </div>
+                
+                <!-- Quick document type indicators -->
+                <div class="mt-3 pt-3 border-top">
+                    <small class="text-muted d-block mb-2">Quick Upload:</small>
+                    <div class="d-flex flex-wrap gap-1">
+                        <a href="{% url 'properties:upload_document' tenant.id %}?type=AADHAAR" 
+                           class="badge bg-light text-dark border" style="cursor: pointer; font-weight: normal;">
+                            Aadhaar
+                        </a>
+                        <a href="{% url 'properties:upload_document' tenant.id %}?type=PAN" 
+                           class="badge bg-light text-dark border" style="cursor: pointer; font-weight: normal;">
+                            PAN
+                        </a>
+                        <a href="{% url 'properties:upload_document' tenant.id %}?type=POLICE_VERIFICATION" 
+                           class="badge bg-light text-dark border" style="cursor: pointer; font-weight: normal;">
+                            Police Verification
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Issues -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                    Issues ({{ issues|length }})
+                </div>
+            </div>
+            <div class="section-body">
+                {% if issues %}
+                {% for issue in issues %}
+                <div class="issue-item">
+                    <div class="issue-icon {% if issue.status == 'RESOLVED' %}bg-success-light text-success{% elif issue.priority == 'URGENT' %}bg-danger-light text-danger{% else %}bg-warning-light text-warning{% endif %}">
+                        <i class="bi bi-{% if issue.status == 'RESOLVED' %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <a href="{% url 'properties:issue_detail' issue.id %}" class="text-decoration-none">
+                            <div class="fw-semibold text-dark" style="font-size: 0.875rem;">{{ issue.title }}</div>
+                        </a>
+                        <small class="text-muted">
+                            {{ issue.raised_date|date:"d M Y" }}
+                            <span class="badge {% if issue.status == 'RESOLVED' %}bg-success{% elif issue.status == 'OPEN' %}bg-danger{% else %}bg-warning{% endif %} ms-1" style="font-size: 0.65rem;">
+                                {{ issue.get_status_display }}
+                            </span>
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-2">
+                    <i class="bi bi-check-circle text-success d-block mb-1" style="font-size: 1.5rem;"></i>
+                    <small>No issues reported</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

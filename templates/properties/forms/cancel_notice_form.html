@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Cancel Notice - {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cancel-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        max-width: 500px;
+        margin: 2rem auto;
+    }
+    
+    .warning-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: white;
+    }
+    
+    .notice-info {
+        background: var(--background);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1.5rem 0;
+    }
+    
+    .notice-info .item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cancel-card text-center">
+    <div class="warning-icon">
+        <i class="bi bi-x-circle"></i>
+    </div>
+    
+    <h4 class="mb-2">Cancel Notice?</h4>
+    <p class="text-muted">Are you sure you want to cancel the notice for {{ tenant.name }}?</p>
+    
+    <div class="notice-info text-start">
+        <div class="item">
+            <span class="text-muted">Notice Date</span>
+            <span class="fw-600">{{ current_occupancy.notice_date|date:"d M Y" }}</span>
+        </div>
+        <div class="item">
+            <span class="text-muted">Expected Checkout</span>
+            <span class="fw-600">{{ current_occupancy.expected_checkout_date|date:"d M Y" }}</span>
+        </div>
+        {% if current_occupancy.notice_reason %}
+        <div class="item">
+            <span class="text-muted">Reason</span>
+            <span class="fw-600">{{ current_occupancy.notice_reason|truncatewords:10 }}</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-3">
+            <a href="{% url 'properties:tenant_history' tenant.id %}" class="btn btn-secondary flex-grow-1">
+                Keep Notice
+            </a>
+            <button type="submit" class="btn btn-warning flex-grow-1">
+                <i class="bi bi-x-circle me-1"></i>Cancel Notice
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Access - {{ manager.username }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .form-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--background);
+    }
+    
+    .form-body {
+        padding: 1.5rem;
+    }
+    
+    .building-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .building-item:hover {
+        border-color: var(--primary);
+        background: rgba(37, 99, 235, 0.05);
+    }
+    
+    .building-item.selected {
+        border-color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .building-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .building-item.selected .building-icon {
+        background: var(--success);
+        color: white;
+    }
+    
+    .select-all-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--background);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'properties:manager_detail' manager.id %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Manager
+    </a>
+</div>
+
+<div class="form-card">
+    <div class="form-header">
+        <h4 class="mb-1">
+            <i class="bi bi-building text-primary me-2"></i>Manage Building Access
+        </h4>
+        <p class="text-muted mb-0 small">
+            Select buildings that <strong>{{ manager.username }}</strong> can access
+        </p>
+    </div>
+    
+    <div class="form-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="select-all-bar">
+                <span class="small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Checked buildings will be accessible
+                </span>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-success" onclick="selectAll()">
+                        Grant All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="deselectAll()">
+                        Revoke All
+                    </button>
+                </div>
+            </div>
+            
+            <div class="buildings-list">
+                {% for item in buildings_with_access %}
+                <label class="building-item {% if item.has_access %}selected{% endif %}" id="building-{{ item.building.id }}">
+                    <input type="checkbox" name="buildings" value="{{ item.building.id }}" 
+                           class="form-check-input d-none" {% if item.has_access %}checked{% endif %}
+                           onchange="toggleSelection(this, {{ item.building.id }})">
+                    <div class="building-icon">
+                        <i class="bi bi-{% if item.has_access %}check{% else %}building{% endif %}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">{{ item.building.name }}</div>
+                        <small class="text-muted">{{ item.building.total_units }} units</small>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" 
+                               {% if item.has_access %}checked{% endif %}
+                               onchange="toggleSelection(this, {{ item.building.id }})"
+                               style="pointer-events: none;">
+                    </div>
+                </label>
+                {% empty %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-1"></i>
+                    No buildings available in your account.
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="d-flex gap-2 justify-content-end pt-3 border-top mt-3">
+                <a href="{% url 'properties:manager_detail' manager.id %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function selectAll() {
+    document.querySelectorAll('input[name="buildings"]').forEach(cb => {
+        cb.checked = true;
+        document.getElementById('building-' + cb.value).classList.add('selected');
+        document.getElementById('building-' + cb.value).querySelector('.building-icon i').className = 'bi bi-check';
+    });
+}
+
+function deselectAll() {
+    document.querySelectorAll('input[name="buildings"]').forEach(cb => {
+        cb.checked = false;
+        document.getElementById('building-' + cb.value).classList.remove('selected');
+        document.getElementById('building-' + cb.value).querySelector('.building-icon i').className = 'bi bi-building';
+    });
+}
+
+function toggleSelection(checkbox, buildingId) {
+    const item = document.getElementById('building-' + buildingId);
+    const icon = item.querySelector('.building-icon i');
+    const hiddenCb = item.querySelector('input[name="buildings"]');
+    
+    if (checkbox.checked || hiddenCb.checked) {
+        item.classList.add('selected');
+        icon.className = 'bi bi-check';
+        hiddenCb.checked = true;
+    } else {
+        item.classList.remove('selected');
+        icon.className = 'bi bi-building';
+        hiddenCb.checked = false;
+    }
+}
+</script>
+{% endblock %}
+

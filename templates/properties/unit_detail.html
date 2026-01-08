@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ unit.unit_number }} - PropertyNest{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-house"></i> {{ unit.building.name }} - {{ unit.unit_number }}</h2>
+        <p class="text-muted mb-0">
+            {{ unit.get_unit_type_display }}
+            {% if unit.bhk_type %}• <strong>{{ unit.bhk_type }}</strong>{% endif %}
+            {% if unit.unit_type == 'PG' and tenant_count > 0 %}• {{ tenant_count }} Tenant{{ tenant_count|pluralize }}{% endif %}
+        </p>
+    </div>
+    <a href="{% url 'properties:building_detail' unit.building.id %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Building
+    </a>
+</div>
+
+<div class="row">
+    <!-- Basic Info -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Basic Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="40%">Type:</th>
+                        <td>{{ unit.get_unit_type_display }}</td>
+                    </tr>
+                    {% if unit.bhk_type %}
+                    <tr>
+                        <th>BHK Type:</th>
+                        <td><strong>{{ unit.bhk_type }}</strong></td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Expected Rent:</th>
+                        <td><strong>{{ site_settings.currency_symbol|default:"₹" }}{{ unit.expected_rent|floatformat:0 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Deposit:</th>
+                        <td>{{ site_settings.currency_symbol|default:"₹" }}{{ unit.deposit|floatformat:0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge {% if unit.status == 'OCCUPIED' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ unit.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% if tenant_count > 0 %}
+                    <tr>
+                        <th>Tenants:</th>
+                        <td><strong>{{ tenant_count }} Living</strong></td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-cash-stack"></i> Revenue Summary</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="50%">Total Rent Paid:</th>
+                        <td><strong class="text-success">{{ site_settings.currency_symbol|default:"₹" }}{{ total_rent_paid|floatformat:0 }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Pending Rent:</th>
+                        <td><strong class="text-danger">{{ site_settings.currency_symbol|default:"₹" }}{{ pending_rent|floatformat:0 }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- For FLAT: Show All Tenants -->
+{% if unit.unit_type == 'FLAT' %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0"><i class="bi bi-people"></i> All Residents ({{ tenant_count }})</h5>
+            {% if unit.bhk_type %}
+            <span class="badge bg-info mt-1">{{ unit.bhk_type }}</span>
+            {% endif %}
+        </div>
+        {% if tenant_count > 1 %}
+        <a href="{% url 'properties:add_rent_unit' unit.id %}" class="btn btn-success btn-sm" title="Add rent for all residents (splits equally)">
+            <i class="bi bi-cash-coin me-1"></i> Add Shared Rent
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if all_occupancies %}
+        <div class="row g-3">
+            {% for occupancy in all_occupancies %}
+            <div class="col-md-6">
+                <div class="card border">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-person-circle"></i> {{ occupancy.tenant.name }}
+                                </h6>
+                                <p class="mb-1">
+                                    <i class="bi bi-telephone"></i> {{ occupancy.tenant.phone }}
+                                    {% if occupancy.tenant.email %}<br><i class="bi bi-envelope"></i> {{ occupancy.tenant.email }}{% endif %}
+                                </p>
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <strong>Rent:</strong> {{ site_settings.currency_symbol|default:"₹" }}{{ occupancy.rent|floatformat:0 }}/month
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <strong>Deposit:</strong> {{ site_settings.currency_symbol|default:"₹" }}{{ occupancy.deposit|floatformat:0 }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <strong>Since:</strong> {{ occupancy.start_date|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div>
+                                <a href="{% url 'properties:tenant_history' occupancy.tenant.id %}" 
+                                   class="btn btn-sm btn-outline-primary" title="View Full History">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> No residents currently. This {{ unit.bhk_type|default:"unit" }} is vacant.
+            <div class="mt-2">
+                <a href="{% url 'properties:add_occupancy_unit' unit.id %}" 
+                   class="btn btn-sm btn-success" title="Assign Resident to this {{ unit.bhk_type|default:'Unit' }}">
+                    <i class="bi bi-person-plus"></i> Assign Resident
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- For PG: Show Rooms with Sharing Type and All Tenants -->
+{% if unit.unit_type == 'PG' and pg_rooms_with_tenants %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-door-open"></i> PG Rooms & Tenants ({{ tenant_count }} Total)</h5>
+    </div>
+    <div class="card-body">
+        {% for room_data in pg_rooms_with_tenants %}
+        <div class="card mb-3 border">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong><i class="bi bi-door-closed"></i> {{ room_data.room.room_number }}</strong>
+                        <span class="badge bg-info ms-2">{{ room_data.room.sharing_type }}-Sharing</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if room_data.room.occupied_beds > 0 %}
+                        <a href="{% url 'properties:add_rent_room' room_data.room.id %}" 
+                           class="btn btn-sm btn-outline-success" title="Add rent for all beds in this room">
+                            <i class="bi bi-cash-coin me-1"></i> Add Room Rent
+                        </a>
+                        {% endif %}
+                        <span class="badge bg-success">{{ room_data.room.occupied_beds }} Occupied</span>
+                        <span class="badge bg-secondary ms-1">{{ room_data.room.vacant_beds }} Vacant</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for bed_data in room_data.beds %}
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded {% if bed_data.tenant %}bg-success bg-opacity-10{% else %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <strong>
+                                        <i class="bi bi-{% if bed_data.tenant %}person-fill{% else %}person{% endif %}"></i>
+                                        {{ bed_data.bed.bed_number }}
+                                    </strong>
+                                    <span class="badge {% if bed_data.tenant %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+                                        {% if bed_data.tenant %}Occupied{% else %}Vacant{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {% if bed_data.tenant %}
+                            <div class="mt-2 p-2 bg-white rounded">
+                                <h6 class="mb-2">
+                                    <i class="bi bi-person-circle"></i> {{ bed_data.tenant.name }}
+                                </h6>
+                                <p class="mb-1 small">
+                                    <i class="bi bi-telephone"></i> {{ bed_data.tenant.phone }}
+                                    {% if bed_data.tenant.email %}<br><i class="bi bi-envelope"></i> {{ bed_data.tenant.email }}{% endif %}
+                                </p>
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <strong>Rent:</strong> {{ site_settings.currency_symbol|default:"₹" }}{{ bed_data.occupancy.rent|floatformat:0 }}/month
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <strong>Deposit:</strong> {{ site_settings.currency_symbol|default:"₹" }}{{ bed_data.occupancy.deposit|floatformat:0 }}
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <strong>Since:</strong> {{ bed_data.occupancy.start_date|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                                <a href="{% url 'properties:tenant_history' bed_data.tenant.id %}" 
+                                   class="btn btn-sm btn-outline-primary mt-2" title="View Full History">
+                                    <i class="bi bi-eye"></i> View Details
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="mt-2">
+                                <div class="text-muted mb-2">
+                                    <small><i class="bi bi-info-circle"></i> Available for rent</small>
+                                </div>
+                                <a href="{% url 'properties:add_occupancy_bed' bed_data.bed.id %}" 
+                                   class="btn btn-sm btn-success" title="Assign Resident to {{ bed_data.bed.bed_number }}">
+                                    <i class="bi bi-person-plus"></i> Assign
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Rent Payment History -->
+{% if rent_history %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-cash-coin"></i> Rent Payment History (Last 12 Months)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Tenant</th>
+                        <th>Expected</th>
+                        <th>Paid</th>
+                        <th>Pending</th>
+                        <th>Status</th>
+                        <th>Paid Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rent in rent_history %}
+                    <tr>
+                        <td>{{ rent.month|date:"M Y" }}</td>
+                        <td>
+                            <a href="{% url 'properties:tenant_history' rent.occupancy.tenant.id %}">
+                                {{ rent.occupancy.tenant.name }}
+                            </a>
+                        </td>
+                        <td>{{ site_settings.currency_symbol|default:"₹" }}{{ rent.amount|floatformat:2 }}</td>
+                        <td>{{ site_settings.currency_symbol|default:"₹" }}{{ rent.paid_amount|floatformat:2 }}</td>
+                        <td>{{ site_settings.currency_symbol|default:"₹" }}{{ rent.pending_amount|floatformat:2 }}</td>
+                        <td>
+                            <span class="badge {% if rent.status == 'PAID' %}bg-success{% elif rent.status == 'PARTIAL' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ rent.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{% if rent.paid_date %}{{ rent.paid_date|date:"d M Y" }}{% else %}-{% endif %}</td>
+                        <td>
+                            <a href="{% url 'properties:rent_management' %}?receipt={{ rent.id }}" 
+                               class="btn btn-sm btn-outline-primary" target="_blank" title="View Receipt">
+                                <i class="bi bi-receipt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Issues -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="bi bi-tools"></i> Maintenance</h5>
+        <a href="{% url 'properties:add_issue_unit' unit.id %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Report Issue
+        </a>
+    </div>
+    <div class="card-body">
+        {% if issues %}
+            <div class="list-group">
+                {% for issue in issues %}
+                    <a href="{% url 'properties:issue_detail' issue.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ issue.title }}</h6>
+                                <p class="mb-1 text-muted">{{ issue.description|truncatewords:20 }}</p>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ issue.raised_date|date:"d M Y" }}
+                                    {% if issue.assigned_to %}
+                                        • <i class="bi bi-person"></i> {{ issue.assigned_to }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge {% if issue.status == 'RESOLVED' %}bg-success{% elif issue.priority == 'URGENT' %}bg-danger{% else %}bg-warning{% endif %}">
+                                    {{ issue.get_status_display }}
+                                </span>
+                                <br>
+                                <small class="badge bg-secondary mt-1">{{ issue.get_priority_display }}</small>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No issues reported for this unit.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

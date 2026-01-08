@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ manager.username }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .manager-header {
+        background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        color: white;
+        margin-bottom: 1.5rem;
+    }
+    
+    .manager-avatar-lg {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .section-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+    }
+    
+    .section-header {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    
+    .section-body {
+        padding: 1rem;
+    }
+    
+    .building-access-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .building-access-item:last-child {
+        border-bottom: none;
+    }
+    
+    .building-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .building-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .access-granted {
+        background: var(--success-light);
+        color: var(--success);
+    }
+    
+    .access-denied {
+        background: var(--background);
+        color: var(--text-muted);
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .info-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-item span {
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'properties:team_management' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Team
+    </a>
+</div>
+
+<!-- Manager Header -->
+<div class="manager-header">
+    <div class="d-flex align-items-center gap-3">
+        <div class="manager-avatar-lg">
+            {{ manager.username|slice:":1"|upper }}
+        </div>
+        <div class="flex-grow-1">
+            <h3 class="mb-1">{{ manager.username }}</h3>
+            <p class="mb-0 opacity-75">
+                <i class="bi bi-person-badge me-1"></i> Manager • 
+                <i class="bi bi-building me-1"></i> {{ access_count }} of {{ total_buildings }} buildings
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'properties:manage_building_access' manager.id %}" class="btn btn-outline-light">
+                <i class="bi bi-building me-1"></i> Manage Access
+            </a>
+            <a href="{% url 'properties:remove_manager' manager.id %}" class="btn btn-outline-danger">
+                <i class="bi bi-person-x me-1"></i> Remove
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4">
+        <!-- Contact Info -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-person me-2 text-primary"></i>Contact Info
+                </div>
+            </div>
+            <div class="section-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Username</label>
+                        <span>{{ manager.username }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Role</label>
+                        <span class="badge bg-primary">Manager</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Email</label>
+                        <span>{{ manager.email|default:"Not set" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Phone</label>
+                        <span>{{ manager.phone|default:"Not set" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Added On</label>
+                        <span>{{ manager.date_joined|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Last Login</label>
+                        <span>{{ manager.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <!-- Building Access -->
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-title">
+                    <i class="bi bi-building me-2 text-primary"></i>Building Access
+                </div>
+                <span class="badge bg-primary">{{ access_count }}/{{ total_buildings }}</span>
+            </div>
+            <div class="section-body p-0">
+                {% for item in buildings_with_access %}
+                <div class="building-access-item">
+                    <div class="building-info">
+                        <div class="building-icon {% if item.has_access %}access-granted{% else %}access-denied{% endif %}">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <div>
+                            <div class="fw-semibold">{{ item.building.name }}</div>
+                            <small class="text-muted">{{ item.building.total_units }} units • {{ item.building.address|truncatewords:5 }}</small>
+                        </div>
+                    </div>
+                    {% if item.has_access %}
+                    <span class="badge bg-success"><i class="bi bi-check me-1"></i>Has Access</span>
+                    {% else %}
+                    <span class="badge bg-secondary">No Access</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-4">
+                    <i class="bi bi-building"></i>
+                    <p class="mb-0 small">No buildings in this account</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

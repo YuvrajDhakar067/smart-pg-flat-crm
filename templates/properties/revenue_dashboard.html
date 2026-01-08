@@ -1,0 +1,758 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% load property_filters %}
+
+{% block title %}Revenue Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Clean minimal design */
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .page-header p {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    /* Stat Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 992px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (max-width: 576px) {
+        .stats-grid { grid-template-columns: 1fr; }
+    }
+    
+    .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .stat-icon.green { background: #dcfce7; color: #16a34a; }
+    .stat-icon.red { background: #fee2e2; color: #dc2626; }
+    .stat-icon.blue { background: #dbeafe; color: #2563eb; }
+    .stat-icon.purple { background: #f3e8ff; color: #9333ea; }
+    
+    [data-theme="dark"] .stat-icon.green { background: rgba(22, 163, 74, 0.2); }
+    [data-theme="dark"] .stat-icon.red { background: rgba(220, 38, 38, 0.2); }
+    [data-theme="dark"] .stat-icon.blue { background: rgba(37, 99, 235, 0.2); }
+    [data-theme="dark"] .stat-icon.purple { background: rgba(147, 51, 234, 0.2); }
+    
+    .stat-content {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+    }
+    
+    .stat-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    .stat-badge.up {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+    
+    .stat-badge.down {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    
+    [data-theme="dark"] .stat-badge.up { background: rgba(22, 163, 74, 0.2); }
+    [data-theme="dark"] .stat-badge.down { background: rgba(220, 38, 38, 0.2); }
+    
+    /* Cards */
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+    
+    .card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .card-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .card-title i {
+        color: var(--primary);
+        font-size: 1rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    /* Chart Container */
+    .chart-wrapper {
+        height: 280px;
+        position: relative;
+    }
+    
+    .chart-wrapper.small {
+        height: 220px;
+    }
+    
+    /* Current Month Highlight */
+    .highlight-card {
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        border: none;
+        color: white;
+    }
+    
+    .highlight-card .month-name {
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+    
+    .highlight-card .month-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+    }
+    
+    .highlight-card .mini-stats {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .highlight-card .mini-stat {
+        background: rgba(255,255,255,0.15);
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    /* Year Comparison */
+    .year-box {
+        background: var(--background);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        flex: 1;
+    }
+    
+    .year-box .year {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .year-box .amount {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-top: 0.25rem;
+    }
+    
+    /* Table */
+    .data-table {
+        width: 100%;
+        font-size: 0.875rem;
+    }
+    
+    .data-table th {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        letter-spacing: 0.5px;
+    }
+    
+    .data-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+    }
+    
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .data-table .name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .type-badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .type-badge.pg {
+        background: #fef3c7;
+        color: #b45309;
+    }
+    
+    .type-badge.flat {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+    
+    [data-theme="dark"] .type-badge.pg { background: rgba(180, 83, 9, 0.2); }
+    [data-theme="dark"] .type-badge.flat { background: rgba(29, 78, 216, 0.2); }
+    
+    .rate-bar {
+        width: 50px;
+        height: 6px;
+        background: var(--background);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .rate-fill {
+        height: 100%;
+        border-radius: 3px;
+    }
+    
+    .rate-fill.excellent { background: #16a34a; }
+    .rate-fill.good { background: #2563eb; }
+    .rate-fill.warning { background: #d97706; }
+    .rate-fill.danger { background: #dc2626; }
+    
+    .rate-text {
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .rate-text.excellent { color: #16a34a; }
+    .rate-text.good { color: #2563eb; }
+    .rate-text.warning { color: #d97706; }
+    .rate-text.danger { color: #dc2626; }
+    
+    /* Dues List */
+    .dues-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .dues-item:last-child {
+        border-bottom: none;
+    }
+    
+    .dues-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .dues-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #fee2e2;
+        color: #dc2626;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    
+    .dues-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+    
+    .dues-property {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .dues-amount {
+        text-align: right;
+    }
+    
+    .dues-amount .value {
+        font-weight: 700;
+        color: #dc2626;
+    }
+    
+    .dues-amount .months {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
+    }
+    
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+    
+    /* Scrollable */
+    .scrollable {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1><i class="bi bi-bar-chart-line me-2 text-primary"></i>Revenue</h1>
+        <p>Financial insights across {{ total_buildings }} propert{{ total_buildings|pluralize:"y,ies" }}</p>
+    </div>
+    <a href="{% url 'properties:rent_management' %}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-receipt me-1"></i>Rent Management
+    </a>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="bi bi-currency-rupee"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ total_revenue|floatformat:0|intcomma }}</div>
+            <div class="stat-label">Collected</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">₹{{ total_pending|floatformat:0|intcomma }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="bi bi-percent"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ overall_collection_rate }}%</div>
+            <div class="stat-label">Collection Rate</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="bi bi-graph-up"></i></div>
+        <div class="stat-content">
+            <div class="stat-value">{{ yoy_growth }}%</div>
+            <div class="stat-label">YoY Growth</div>
+        </div>
+        <span class="stat-badge {% if yoy_growth >= 0 %}up{% else %}down{% endif %}">
+            <i class="bi bi-{% if yoy_growth >= 0 %}arrow-up{% else %}arrow-down{% endif %}"></i>
+            vs {{ last_year }}
+        </span>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-bar-chart"></i>Monthly Trend</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrapper">
+                    <canvas id="monthlyTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Month -->
+    <div class="col-lg-4">
+        <div class="card highlight-card">
+            <div class="card-body">
+                <div class="month-name">{{ current_month|date:"F Y" }}</div>
+                <div class="month-value">₹{{ current_collected|floatformat:0|intcomma }}</div>
+                <div class="mini-stats">
+                    <div class="mini-stat"><i class="bi bi-check2"></i>{{ current_paid_count }} Paid</div>
+                    <div class="mini-stat"><i class="bi bi-clock"></i>{{ current_pending_count }} Pending</div>
+                    <div class="mini-stat"><i class="bi bi-percent"></i>{{ current_rate }}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-calendar3"></i>Year Comparison</h3>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2">
+                    <div class="year-box">
+                        <div class="year">{{ last_year }}</div>
+                        <div class="amount">₹{{ yearly_comparison|get_item:last_year|get_item:"collected"|floatformat:0|intcomma }}</div>
+                    </div>
+                    <div class="year-box">
+                        <div class="year">{{ current_year }}</div>
+                        <div class="amount">₹{{ yearly_comparison|get_item:current_year|get_item:"collected"|floatformat:0|intcomma }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Property Revenue -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-pie-chart"></i>Property Revenue</h3>
+            </div>
+            <div class="card-body">
+                {% if property_data %}
+                <div class="chart-wrapper small">
+                    <canvas id="propertyChart"></canvas>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-building"></i>
+                    <p>No data available</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Table -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-trophy"></i>Property Performance</h3>
+            </div>
+            <div class="card-body p-0">
+                {% if property_data %}
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Collected</th>
+                                <th>Pending</th>
+                                <th>Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prop in property_data %}
+                            <tr>
+                                <td>
+                                    <span class="name">{{ prop.name }}</span>
+                                    <span class="type-badge {% if prop.type == 'PG' %}pg{% else %}flat{% endif %} ms-1">{{ prop.type }}</span>
+                                </td>
+                                <td class="text-success">₹{{ prop.collected|floatformat:0|intcomma }}</td>
+                                <td class="text-danger">₹{{ prop.pending|floatformat:0|intcomma }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rate-bar">
+                                            <div class="rate-fill {% if prop.rate >= 90 %}excellent{% elif prop.rate >= 70 %}good{% elif prop.rate >= 50 %}warning{% else %}danger{% endif %}" 
+                                                 style="width: {{ prop.rate }}%"></div>
+                                        </div>
+                                        <span class="rate-text {% if prop.rate >= 90 %}excellent{% elif prop.rate >= 70 %}good{% elif prop.rate >= 50 %}warning{% else %}danger{% endif %}">
+                                            {{ prop.rate }}%
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-building"></i>
+                    <p>No property data</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Monthly Breakdown -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-graph-up"></i>{{ current_year }} Monthly Breakdown</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrapper small">
+                    <canvas id="monthlyBreakdownChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pending Dues -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-exclamation-triangle text-warning"></i>Pending Dues</h3>
+            </div>
+            <div class="card-body">
+                {% if pending_dues %}
+                <div class="scrollable">
+                    {% for due in pending_dues %}
+                    <div class="dues-item">
+                        <div class="dues-info">
+                            <div class="dues-avatar">{{ due.occupancy__tenant__name|slice:":1"|upper }}</div>
+                            <div>
+                                <div class="dues-name">{{ due.occupancy__tenant__name }}</div>
+                                <div class="dues-property">{{ due.occupancy__unit__building__name }}</div>
+                            </div>
+                        </div>
+                        <div class="dues-amount">
+                            <div class="value">₹{{ due.total_due|floatformat:0|intcomma }}</div>
+                            <div class="months">{{ due.months_pending }} month{{ due.months_pending|pluralize }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <p class="text-success mb-0">All dues collected!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#a1a1aa' : '#71717a';
+    
+    Chart.defaults.color = textColor;
+    Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+    
+    // Monthly Trend
+    const monthLabels = {{ month_labels|safe }};
+    const expectedData = {{ expected_data|safe }};
+    const collectedData = {{ collected_data|safe }};
+    
+    if (monthLabels.length > 0) {
+        new Chart(document.getElementById('monthlyTrendChart'), {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Expected',
+                        data: expectedData,
+                        backgroundColor: isDark ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.15)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'Collected',
+                        data: collectedData,
+                        backgroundColor: '#16a34a',
+                        borderColor: '#16a34a',
+                        borderWidth: 0,
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top', 
+                        labels: { usePointStyle: true, padding: 20, boxWidth: 8 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.dataset.label + ': ₹' + ctx.raw.toLocaleString('en-IN')
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { callback: v => '₹' + (v/1000) + 'K' }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+    
+    // Property Doughnut
+    const propLabels = {{ property_labels|safe }};
+    const propCollected = {{ property_collected|safe }};
+    
+    if (propLabels.length > 0) {
+        new Chart(document.getElementById('propertyChart'), {
+            type: 'doughnut',
+            data: {
+                labels: propLabels,
+                datasets: [{
+                    data: propCollected,
+                    backgroundColor: ['#6366f1','#16a34a','#f59e0b','#ef4444','#8b5cf6','#06b6d4'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'bottom',
+                        labels: { usePointStyle: true, padding: 12, boxWidth: 8 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.label + ': ₹' + ctx.raw.toLocaleString('en-IN')
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+    
+    // Monthly Breakdown Line
+    const breakLabels = {{ breakdown_labels|safe }};
+    const breakExpected = {{ breakdown_expected|safe }};
+    const breakCollected = {{ breakdown_collected|safe }};
+    
+    new Chart(document.getElementById('monthlyBreakdownChart'), {
+        type: 'line',
+        data: {
+            labels: breakLabels,
+            datasets: [
+                {
+                    label: 'Expected',
+                    data: breakExpected,
+                    borderColor: '#6366f1',
+                    backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.05)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#6366f1',
+                    borderWidth: 2
+                },
+                {
+                    label: 'Collected',
+                    data: breakCollected,
+                    borderColor: '#16a34a',
+                    backgroundColor: isDark ? 'rgba(22,163,74,0.1)' : 'rgba(22,163,74,0.05)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#16a34a',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'top',
+                    labels: { usePointStyle: true, padding: 20, boxWidth: 8 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.dataset.label + ': ₹' + ctx.raw.toLocaleString('en-IN')
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { callback: v => '₹' + (v/1000) + 'K' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

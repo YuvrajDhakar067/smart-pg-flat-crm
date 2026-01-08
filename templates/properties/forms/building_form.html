@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title|default:"Add Property" }} - PropertyNest{% endblock %}
+
+{% block extra_css %}
+<style>
+    .type-card {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid var(--border);
+    }
+    
+    .type-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+    
+    .type-card.selected {
+        border-color: var(--primary);
+        background: rgba(79, 70, 229, 0.05);
+    }
+    
+    .type-card.selected .type-icon {
+        color: var(--primary);
+    }
+    
+    .type-icon {
+        font-size: 2rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+    
+    .unit-row {
+        background: var(--background);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid var(--border);
+    }
+    
+    .unit-row:hover {
+        border-color: var(--primary);
+    }
+    
+    .remove-btn {
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    
+    .unit-row:hover .remove-btn {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-building-add text-primary"></i>
+            {{ title|default:"Add Property" }}
+        </h1>
+        <p class="page-subtitle">Create a property and add units in one go</p>
+    </div>
+    <a href="{% url 'properties:building_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<form method="post" id="propertyForm">
+    {% csrf_token %}
+    
+    {% if form.errors %}
+    <div class="alert alert-danger mb-3">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        Please fix the errors below.
+    </div>
+    {% endif %}
+    
+    <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+            <!-- Step 1: Basic Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">1</span>
+                    Property Details
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-500">Property Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g., Green Valley Apartments" 
+                                   value="{{ form.name.value|default:'' }}" required>
+                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-500">Floors</label>
+                            <input type="number" name="total_floors" class="form-control" placeholder="e.g., 5" 
+                                   value="{{ form.total_floors.value|default:'1' }}" min="1">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-500">Address <span class="text-danger">*</span></label>
+                            <textarea name="address" class="form-control" rows="2" 
+                                      placeholder="Full address with city and pincode" required>{{ form.address.value|default:'' }}</textarea>
+                            {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Property Type -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">2</span>
+                    Property Type
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="type-card card h-100 selected" data-type="FLAT" onclick="selectType('FLAT')">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-building type-icon"></i>
+                                    <h6 class="fw-600 mb-1">Residential Flats</h6>
+                                    <small class="text-muted">1BHK, 2BHK, 3BHK</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="type-card card h-100" data-type="PG" onclick="selectType('PG')">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-door-closed type-icon"></i>
+                                    <h6 class="fw-600 mb-1">Paying Guest</h6>
+                                    <small class="text-muted">Shared rooms with beds</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="type-card card h-100" data-type="MIXED" onclick="selectType('MIXED')">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-grid-1x2 type-icon"></i>
+                                    <h6 class="fw-600 mb-1">Mixed Property</h6>
+                                    <small class="text-muted">Both flats and PG</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="building_type" id="buildingType" value="FLAT">
+                </div>
+            </div>
+            
+            <!-- Step 3: Add Flats -->
+            <div class="card mb-4" id="flatsSection">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary me-2">3</span>
+                        Add Flat Units
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addFlat()">
+                        <i class="bi bi-plus-lg me-1"></i> Add Flat
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="flatsContainer">
+                        <!-- Default flat row -->
+                        <div class="unit-row" id="flat-0">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted mb-1">Unit Number</label>
+                                    <input type="text" name="flat_unit_number[]" class="form-control form-control-sm" placeholder="101">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Type</label>
+                                    <select name="flat_bhk_type[]" class="form-select form-select-sm">
+                                        <option value="1BHK">1 BHK</option>
+                                        <option value="2BHK">2 BHK</option>
+                                        <option value="3BHK">3 BHK</option>
+                                        <option value="STUDIO">Studio</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Floor</label>
+                                    <input type="number" name="flat_floor[]" class="form-control form-control-sm" placeholder="1" min="0" value="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Rent (₹)</label>
+                                    <input type="number" name="flat_rent[]" class="form-control form-control-sm" placeholder="15000">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Deposit (₹)</label>
+                                    <input type="number" name="flat_deposit[]" class="form-control form-control-sm" placeholder="30000">
+                                </div>
+                                <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeRow(this)" title="Remove">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <i class="bi bi-info-circle me-1"></i> Leave empty rows will be skipped
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3: Add PG Rooms (Hidden by default) -->
+            <div class="card mb-4" id="pgSection" style="display: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-success me-2">3</span>
+                        Add PG Rooms
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="addPGRoom()">
+                        <i class="bi bi-plus-lg me-1"></i> Add Room
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="pgContainer">
+                        <!-- Default PG row -->
+                        <div class="unit-row" id="pg-0">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Unit</label>
+                                    <input type="text" name="pg_unit_number[]" class="form-control form-control-sm" placeholder="PG-1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Room</label>
+                                    <input type="text" name="room_number[]" class="form-control form-control-sm" placeholder="Room 1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Floor</label>
+                                    <input type="number" name="pg_floor[]" class="form-control form-control-sm" placeholder="1" min="0" value="1">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Sharing</label>
+                                    <select name="sharing_type[]" class="form-select form-select-sm">
+                                        <option value="1">Single</option>
+                                        <option value="2" selected>Double</option>
+                                        <option value="3">Triple</option>
+                                        <option value="4">4-Sharing</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Rent/Bed</label>
+                                    <input type="number" name="bed_rent[]" class="form-control form-control-sm" placeholder="8000">
+                                </div>
+                                <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeRow(this)" title="Remove">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <i class="bi bi-info-circle me-1"></i> Beds are auto-created based on sharing type
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Submit -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> Create Property
+                </button>
+                <a href="{% url 'properties:building_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-primary-light sticky-top" style="top: 80px;">
+                <div class="card-body">
+                    <h6 class="fw-600 mb-3">
+                        <i class="bi bi-lightbulb text-warning me-2"></i>Quick Tips
+                    </h6>
+                    <ul class="small mb-0 ps-3">
+                        <li class="mb-2">Enter property name and address first</li>
+                        <li class="mb-2">Select if it's Flats, PG, or Mixed</li>
+                        <li class="mb-2">Add units/rooms with rent details</li>
+                        <li class="mb-2">Click "Add Flat" or "Add Room" for more</li>
+                        <li>Empty rows are automatically skipped</li>
+                    </ul>
+                    
+                    <hr class="my-3">
+                    
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Flats to create:</span>
+                            <strong id="flatCount">1</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">PG Rooms to create:</span>
+                            <strong id="pgCount">0</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let flatIndex = 1;
+let pgIndex = 1;
+
+// Select property type
+function selectType(type) {
+    document.querySelectorAll('.type-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`.type-card[data-type="${type}"]`).classList.add('selected');
+    document.getElementById('buildingType').value = type;
+    
+    const flatsSection = document.getElementById('flatsSection');
+    const pgSection = document.getElementById('pgSection');
+    
+    if (type === 'FLAT') {
+        flatsSection.style.display = 'block';
+        pgSection.style.display = 'none';
+    } else if (type === 'PG') {
+        flatsSection.style.display = 'none';
+        pgSection.style.display = 'block';
+    } else {
+        flatsSection.style.display = 'block';
+        pgSection.style.display = 'block';
+    }
+    
+    updateCounts();
+}
+
+// Add flat row
+function addFlat() {
+    const container = document.getElementById('flatsContainer');
+    const html = `
+        <div class="unit-row" id="flat-${flatIndex}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <input type="text" name="flat_unit_number[]" class="form-control form-control-sm" placeholder="Unit No.">
+                </div>
+                <div class="col-md-2">
+                    <select name="flat_bhk_type[]" class="form-select form-select-sm">
+                        <option value="1BHK">1 BHK</option>
+                        <option value="2BHK">2 BHK</option>
+                        <option value="3BHK">3 BHK</option>
+                        <option value="STUDIO">Studio</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="flat_floor[]" class="form-control form-control-sm" placeholder="Floor" min="0">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="flat_rent[]" class="form-control form-control-sm" placeholder="Rent">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="flat_deposit[]" class="form-control form-control-sm" placeholder="Deposit">
+                </div>
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+    flatIndex++;
+    updateCounts();
+}
+
+// Add PG room row
+function addPGRoom() {
+    const container = document.getElementById('pgContainer');
+    const html = `
+        <div class="unit-row" id="pg-${pgIndex}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2">
+                    <input type="text" name="pg_unit_number[]" class="form-control form-control-sm" placeholder="PG Unit">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="room_number[]" class="form-control form-control-sm" placeholder="Room">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="pg_floor[]" class="form-control form-control-sm" placeholder="Floor" min="0">
+                </div>
+                <div class="col-md-2">
+                    <select name="sharing_type[]" class="form-select form-select-sm">
+                        <option value="1">Single</option>
+                        <option value="2">Double</option>
+                        <option value="3">Triple</option>
+                        <option value="4">4-Sharing</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="bed_rent[]" class="form-control form-control-sm" placeholder="Rent/Bed">
+                </div>
+                <div class="col-md-1 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+    pgIndex++;
+    updateCounts();
+}
+
+// Remove row
+function removeRow(btn) {
+    btn.closest('.unit-row').remove();
+    updateCounts();
+}
+
+// Update counts
+function updateCounts() {
+    const flatRows = document.querySelectorAll('#flatsContainer .unit-row');
+    const pgRows = document.querySelectorAll('#pgContainer .unit-row');
+    
+    const flatsVisible = document.getElementById('flatsSection').style.display !== 'none';
+    const pgVisible = document.getElementById('pgSection').style.display !== 'none';
+    
+    document.getElementById('flatCount').textContent = flatsVisible ? flatRows.length : 0;
+    document.getElementById('pgCount').textContent = pgVisible ? pgRows.length : 0;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', updateCounts);
+</script>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - PropertyNest{% endblock %}
+
+{% block auth_content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0" style="border-radius: 16px;">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div style="font-size: 2rem; color: #4f46e5; margin-bottom: 0.5rem;">
+                        <i class="bi bi-house-heart-fill"></i>
+                    </div>
+                    <h4 style="font-weight: 700; color: #1e293b;">Create Your Account</h4>
+                    <p class="text-muted small">Start managing your properties today</p>
+                </div>
+                
+                {% if form.errors %}
+                <div class="alert alert-danger py-2" style="font-size: 0.85rem;">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <div><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="id_username" class="form-label fw-600 small">Username</label>
+                            <input type="text" class="form-control" id="id_username" name="username" 
+                                   placeholder="Choose a username" required autofocus style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_password1" class="form-label fw-600 small">Password</label>
+                            <input type="password" class="form-control" id="id_password1" name="password1" 
+                                   placeholder="Create password" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="id_password2" class="form-label fw-600 small">Confirm Password</label>
+                            <input type="password" class="form-control" id="id_password2" name="password2" 
+                                   placeholder="Confirm password" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-12">
+                            <label for="account_name" class="form-label fw-600 small">Business Name</label>
+                            <input type="text" class="form-control" id="account_name" name="account_name" 
+                                   placeholder="Your property business name" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-12">
+                            <label for="phone" class="form-label fw-600 small">Phone (Optional)</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   placeholder="+91 98765 43210" style="border-radius: 8px;">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn w-100 mt-4" 
+                            style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; border: none; border-radius: 8px; padding: 0.625rem; font-weight: 600;">
+                        <i class="bi bi-person-plus me-2"></i> Create Account
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <p class="text-muted mb-0 small">Already have an account? 
+                        <a href="{% url 'accounts:login' %}" style="color: #4f46e5; font-weight: 600;">Sign in</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

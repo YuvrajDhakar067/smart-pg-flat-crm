@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Document{% endblock %}
+
+{% block extra_css %}
+<style>
+    .delete-card {
+        background: var(--surface);
+        border-radius: 16px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        max-width: 450px;
+        margin: 2rem auto;
+        text-align: center;
+    }
+    
+    .warning-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        color: white;
+    }
+    
+    .doc-info {
+        background: var(--background);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+    
+    .doc-info .item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="delete-card">
+    <div class="warning-icon">
+        <i class="bi bi-trash3"></i>
+    </div>
+    
+    <h4 class="mb-2">Delete Document?</h4>
+    <p class="text-muted">This action cannot be undone. The document will be permanently deleted.</p>
+    
+    <div class="doc-info">
+        <div class="item">
+            <span class="text-muted">Document</span>
+            <span class="fw-600">{{ document.get_document_type_display }}</span>
+        </div>
+        {% if document.document_number %}
+        <div class="item">
+            <span class="text-muted">Number</span>
+            <span class="fw-600">{{ document.document_number }}</span>
+        </div>
+        {% endif %}
+        <div class="item">
+            <span class="text-muted">Tenant</span>
+            <span class="fw-600">{{ tenant.name }}</span>
+        </div>
+        <div class="item">
+            <span class="text-muted">File</span>
+            <span class="fw-600">{{ document.original_filename|truncatechars:20 }}</span>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-3">
+            <a href="{% url 'properties:tenant_documents' tenant.id %}" class="btn btn-secondary flex-grow-1">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-danger flex-grow-1">
+                <i class="bi bi-trash me-1"></i>Delete
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
