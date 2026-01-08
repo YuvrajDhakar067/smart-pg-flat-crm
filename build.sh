@@ -5,9 +5,12 @@
 
 set -o errexit  # Exit on error
 
-echo "🔧 Installing dependencies..."
+echo "🧹 Clearing pip cache..."
+pip cache purge || true
+
+echo "🔧 Installing dependencies (fresh with legacy resolver)..."
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install --no-cache-dir --use-deprecated=legacy-resolver -r requirements.txt
 
 echo "📁 Creating necessary directories..."
 mkdir -p logs
