@@ -2,7 +2,6 @@
 Utility functions for accessing settings and content
 """
 from .models import SiteSettings, ContentBlock, StatusLabel, NotificationTemplate
-from django.core.exceptions import ObjectDoesNotExist
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +13,7 @@ def get_site_settings():
         settings = SiteSettings.load()
         # Ensure missing fields have defaults (in case migration not applied)
         if not hasattr(settings, 'max_properties_per_owner'):
-            settings.max_properties_per_owner = 10
+            settings.max_properties_per_owner = 5
         if not hasattr(settings, 'max_managers_per_owner'):
             settings.max_managers_per_owner = 5
         return settings
@@ -29,7 +28,7 @@ def get_site_settings():
             settings.pk = 1
             settings.site_name = "Smart PG & Flat Management CRM"
             settings.currency_symbol = "₹"
-            settings.max_properties_per_owner = 10  # Default value
+            settings.max_properties_per_owner = 5  # Default value
             settings.max_managers_per_owner = 5  # Default value
             return settings
         else:
@@ -39,7 +38,7 @@ def get_site_settings():
             settings.pk = 1
             settings.site_name = "Smart PG & Flat Management CRM"
             settings.currency_symbol = "₹"
-            settings.max_properties_per_owner = 10
+            settings.max_properties_per_owner = 5
             settings.max_managers_per_owner = 5
             return settings
 

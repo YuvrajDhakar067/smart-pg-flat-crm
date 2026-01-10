@@ -2431,36 +2431,32 @@ def add_building(request):
         messages.warning(request, 'Your account is not properly configured.')
         return redirect('accounts:profile')
     
-    # Check property limit before allowing creation
-    from common.utils import get_site_settings
-    site_settings = get_site_settings()
-    max_properties = getattr(site_settings, 'max_properties_per_owner', 10)  # Default to 10 if field doesn't exist
-    
-    if max_properties > 0:  # 0 means unlimited
-        current_property_count = Building.objects.filter(account=account).count()
-        if current_property_count >= max_properties:
+    # Check property limit before allowing creation (uses service layer)
+    # Only check if user is trying to add a property (POST request)
+    # Don't show error on GET request if they're just viewing the page
+    if request.method == 'POST':
+        from accounts.services import AccountLimitService
+        limit_service = AccountLimitService()
+        
+        can_add, error_message = limit_service.can_add_property(account)
+        if not can_add:
             from django.contrib import messages
-            messages.error(
-                request, 
-                f'You have reached the maximum limit of {max_properties} properties. '
-                f'Please contact administrator to increase your limit.'
-            )
+            messages.error(request, error_message)
             return redirect('properties:building_list')
     
     if request.method == 'POST':
         form = BuildingForm(request.POST)
         if form.is_valid():
             # Double-check limit before saving (in case of race condition)
-            if max_properties > 0:
-                current_property_count = Building.objects.filter(account=account).count()
-                if current_property_count >= max_properties:
-                    from django.contrib import messages
-                    messages.error(
-                        request, 
-                        f'You have reached the maximum limit of {max_properties} properties. '
-                        f'Please contact administrator to increase your limit.'
-                    )
-                    return redirect('properties:building_list')
+            # Re-validate using service layer
+            from accounts.services import AccountLimitService
+            limit_service = AccountLimitService()
+            
+            can_add, error_message = limit_service.can_add_property(account)
+            if not can_add:
+                from django.contrib import messages
+                messages.error(request, error_message)
+                return redirect('properties:building_list')
             
             building = form.save(commit=False)
             building.account = account
@@ -3363,6 +3359,7 @@ def add_issue(request, unit_id=None):
 def team_management(request):
     """Team management dashboard - List all managers (Owner only)"""
     from users.models import User
+    from accounts.services import AccountLimitService
     
     account = request.user.account
     
@@ -3386,11 +3383,16 @@ def team_management(request):
             'total_buildings': all_buildings.count(),
         })
     
+    # Get limit information using service layer
+    limit_service = AccountLimitService()
+    limit_info = limit_service.get_limit_info(account)
+    
     context = {
         'managers': manager_list,
         'total_managers': managers.count(),
         'all_buildings': all_buildings,
         'owner': request.user,
+        'limit_info': limit_info,  # Add limit info to context
     }
     
     return render(request, 'properties/team_management.html', context)
@@ -3403,23 +3405,20 @@ def add_manager(request):
     """Add a new manager (Owner only)"""
     from users.models import User
     from django.contrib.auth.hashers import make_password
-    from common.utils import get_site_settings
     
     account = request.user.account
     all_buildings = Building.objects.filter(account=account).order_by('name')
     
-    # Check manager limit before allowing creation
-    site_settings = get_site_settings()
-    max_managers = getattr(site_settings, 'max_managers_per_owner', 5)  # Default to 5 if field doesn't exist
-    
-    if max_managers > 0:  # 0 means unlimited
-        current_manager_count = User.objects.filter(account=account, role='MANAGER').count()
-        if current_manager_count >= max_managers:
-            messages.error(
-                request, 
-                f'You have reached the maximum limit of {max_managers} managers. '
-                f'Please contact administrator to increase your limit.'
-            )
+    # Check manager limit before allowing creation (uses service layer)
+    # Only check if user is trying to add a manager (POST request)
+    # Don't show error on GET request if they're just viewing the page
+    if request.method == 'POST':
+        from accounts.services import AccountLimitService
+        limit_service = AccountLimitService()
+        
+        can_add, error_message = limit_service.can_add_manager(account)
+        if not can_add:
+            messages.error(request, error_message)
             return redirect('properties:team_management')
     
     if request.method == 'POST':
@@ -3446,10 +3445,12 @@ def add_manager(request):
             errors.append('Passwords do not match')
         
         # Double-check manager limit before creating (prevent race condition)
-        if max_managers > 0:
-            current_manager_count = User.objects.filter(account=account, role='MANAGER').count()
-            if current_manager_count >= max_managers:
-                errors.append(f'You have reached the maximum limit of {max_managers} managers.')
+        # Re-validate using service layer
+        from accounts.services import AccountLimitService
+        limit_service = AccountLimitService()
+        can_add, error_message = limit_service.can_add_manager(account)
+        if not can_add:
+            errors.append(error_message)
         
         if errors:
             for error in errors:

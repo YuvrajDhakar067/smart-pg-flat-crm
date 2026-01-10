@@ -77,14 +77,14 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         if self._field_exists('max_properties_per_owner'):
             base_fieldsets.append(('⚠️ Property Limits (IMPORTANT)', {
                 'fields': ('max_properties_per_owner',),
-                'description': 'Set the maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. ⚠️ IMPORTANT: This limit is PER OWNER (PER ACCOUNT), not global. Each owner has their own independent limit. This limit is enforced when owners try to add new properties.'
+                'description': 'Default maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. ⚠️ NOTE: This is the DEFAULT limit. You can override this per-client in Accounts → Edit Account → Custom Limits. Each client can have different limits!'
             }))
         
         # Add Manager Limits if field exists
         if self._field_exists('max_managers_per_owner'):
             base_fieldsets.append(('⚠️ Manager Limits (IMPORTANT)', {
                 'fields': ('max_managers_per_owner',),
-                'description': 'Set the maximum number of managers each owner can create. Set to 0 for unlimited. ⚠️ IMPORTANT: This limit is PER OWNER (PER ACCOUNT), not global. Each owner has their own independent limit. This limit is enforced when owners try to add new managers.'
+                'description': 'Default maximum number of managers each owner can create. Set to 0 for unlimited. ⚠️ NOTE: This is the DEFAULT limit. You can override this per-client in Accounts → Edit Account → Custom Limits. Each client can have different limits!'
             }))
         
         # Add About & Contact fields (check if they exist)
@@ -154,7 +154,7 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         if not change:  # Creating new instance
             # Set defaults if not provided
             if not hasattr(obj, 'max_properties_per_owner') or obj.max_properties_per_owner is None:
-                obj.max_properties_per_owner = 10
+                obj.max_properties_per_owner = 5
             if not hasattr(obj, 'max_managers_per_owner') or obj.max_managers_per_owner is None:
                 obj.max_managers_per_owner = 5
             if not obj.site_name:

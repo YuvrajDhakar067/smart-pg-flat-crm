@@ -37,9 +37,9 @@ class SiteSettings(models.Model):
     
     # Property and Manager Limits (added in migration 0003)
     max_properties_per_owner = models.IntegerField(
-        default=10,
-        help_text="Maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. Default: 10",
-        verbose_name="Max Properties Per Owner"
+        default=5,
+        help_text="Default maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. Default: 5",
+        verbose_name="Max Properties Per Owner (Default)"
     )
     max_managers_per_owner = models.IntegerField(
         default=5,
@@ -149,7 +149,7 @@ class SiteSettings(models.Model):
                                     for col, val in col_map.items():
                                         setattr(obj, col, val)
                                     # Set defaults for missing fields (won't be saved to DB)
-                                    obj.max_properties_per_owner = 10
+                                    obj.max_properties_per_owner = 5
                                     obj.max_managers_per_owner = 5
                                     return obj
                 except Exception:
@@ -160,7 +160,7 @@ class SiteSettings(models.Model):
                 obj, _ = cls.objects.get_or_create(pk=1)
                 # Set defaults for missing fields
                 if not hasattr(obj, 'max_properties_per_owner'):
-                    obj.max_properties_per_owner = 10
+                    obj.max_properties_per_owner = 5
                 if not hasattr(obj, 'max_managers_per_owner'):
                     obj.max_managers_per_owner = 5
                 return obj
@@ -173,7 +173,7 @@ class SiteSettings(models.Model):
                     obj.pk = 1
                     obj.site_name = "Smart PG & Flat Management CRM"
                     obj.currency_symbol = "₹"
-                    obj.max_properties_per_owner = 10
+                    obj.max_properties_per_owner = 5
                     obj.max_managers_per_owner = 5
                     return obj
                 raise
@@ -185,7 +185,7 @@ class SiteSettings(models.Model):
                 obj.pk = 1
                 obj.site_name = "Smart PG & Flat Management CRM"
                 obj.currency_symbol = "₹"
-                obj.max_properties_per_owner = 10
+                obj.max_properties_per_owner = 5
                 obj.max_managers_per_owner = 5
                 return obj
             raise
