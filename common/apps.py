@@ -32,6 +32,9 @@ class CommonConfig(AppConfig):
                 from .scheduler import start_scheduler
                 start_scheduler()
                 logger.info("Background task scheduler initialized")
+            except ImportError as e:
+                # Silently skip if APScheduler is not installed (e.g., in development)
+                logger.warning(f"Scheduler module not available (APScheduler not installed): {e}")
             except Exception as e:
                 logger.error(f"Failed to initialize scheduler: {str(e)}", exc_info=True)
 
