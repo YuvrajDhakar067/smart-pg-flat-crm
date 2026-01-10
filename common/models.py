@@ -26,6 +26,48 @@ class SiteSettings(models.Model):
     currency_symbol = models.CharField(max_length=10, default='₹')
     currency_code = models.CharField(max_length=10, default='INR')
     footer_text = models.TextField(default='Built with ❤️ for Property Owners & Managers')
+    
+    # Property Limits
+    max_properties_per_owner = models.IntegerField(
+        default=10,
+        help_text='Maximum number of properties (buildings) each owner can add. Set to 0 for unlimited.',
+        validators=[MinValueValidator(0)]
+    )
+    
+    # Manager Limits
+    max_managers_per_owner = models.IntegerField(
+        default=5,
+        help_text='Maximum number of managers each owner can create. Set to 0 for unlimited.',
+        validators=[MinValueValidator(0)]
+    )
+    
+    # About & Contact Information
+    about_us = models.TextField(
+        blank=True,
+        help_text='About Us content (HTML allowed)'
+    )
+    contact_email = models.EmailField(
+        blank=True,
+        help_text='Contact email for support/inquiries'
+    )
+    contact_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text='Contact phone number'
+    )
+    contact_address = models.TextField(
+        blank=True,
+        help_text='Contact address'
+    )
+    terms_and_conditions = models.TextField(
+        blank=True,
+        help_text='Terms and Conditions (HTML allowed)'
+    )
+    privacy_policy = models.TextField(
+        blank=True,
+        help_text='Privacy Policy (HTML allowed)'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -36,7 +78,7 @@ class SiteSettings(models.Model):
     @classmethod
     def load(cls):
         """Get or create the singleton instance"""
-        obj, created = cls.objects.get_or_create(pk=1)
+        obj, _ = cls.objects.get_or_create(pk=1)
         return obj
     
     def __str__(self):
@@ -125,54 +167,16 @@ class NotificationTemplate(models.Model):
         return f"{self.template_type}: {self.subject}"
 
 
-class PricingPlan(models.Model):
-    BILLING_PERIOD_CHOICES = [
-        ('monthly', 'Monthly'),
-        ('yearly', 'Yearly'),
-    ]
-    
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10, default='INR')
-    billing_period = models.CharField(max_length=20, choices=BILLING_PERIOD_CHOICES, default='monthly')
-    max_buildings = models.IntegerField(null=True, blank=True, help_text='Null = unlimited')
-    max_units = models.IntegerField(null=True, blank=True, help_text='Null = unlimited')
-    max_users = models.IntegerField(default=1)
-    features = models.TextField(help_text='One feature per line')
-    is_active = models.BooleanField(default=True)
-    is_popular = models.BooleanField(default=False, help_text='Highlight this plan')
-    order = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Pricing Plan'
-        verbose_name_plural = 'Pricing Plans'
-        ordering = ['order', 'price']
-    
-    def __str__(self):
-        return self.name
+# PricingPlan and HelpArticle models removed - not used anywhere in the application
+# If needed in future, can be re-added
 
-
-class HelpArticle(models.Model):
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(unique=True)
-    content = models.TextField(help_text='HTML content allowed')
-    category = models.CharField(max_length=100, blank=True)
-    order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
-    views = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = 'Help Article'
-        verbose_name_plural = 'Help Articles'
-        ordering = ['category', 'order', 'title']
-    
-    def __str__(self):
-        return self.title
+# class PricingPlan(models.Model):
+#     """Removed - not used"""
+#     pass
+#
+# class HelpArticle(models.Model):
+#     """Removed - not used"""
+#     pass
 
 
 class EditingSession(models.Model):

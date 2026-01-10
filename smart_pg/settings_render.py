@@ -270,6 +270,10 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'properties:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
+# Background Task Scheduler
+# Enable automatic monthly rent generation (runs on 1st of each month at 00:00)
+ENABLE_BACKGROUND_SCHEDULER = True
+
 # =============================================================================
 # REST FRAMEWORK
 # =============================================================================

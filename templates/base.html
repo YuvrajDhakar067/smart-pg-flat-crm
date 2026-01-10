@@ -9,7 +9,7 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{% block title %}{{ site_settings.site_name|default:"PropertyNest" }}{% endblock %}</title>
     
     <!-- Bootstrap 5 CSS -->
@@ -393,6 +393,9 @@
             color: var(--text-primary);
             font-size: 14px;
             line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
         
         /* ===== NAVBAR ===== */
@@ -406,6 +409,9 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            width: 100%;
+            max-width: 100vw;
+            margin: 0;
         }
         
         .logo {
@@ -621,10 +627,18 @@
         .app-container {
             display: flex;
             min-height: calc(100vh - 57px);
+            width: 100%;
+            max-width: 100vw;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
         
         .sidebar {
             width: 220px;
+            min-width: 220px;
+            max-width: 220px;
+            flex-shrink: 0;
             background: var(--surface);
             border-right: 1px solid var(--border);
             padding: 1rem 0.75rem;
@@ -632,6 +646,7 @@
             top: 57px;
             height: calc(100vh - 57px);
             overflow-y: auto;
+            overflow-x: hidden;
         }
         
         .nav-section {
@@ -695,9 +710,27 @@
         /* ===== MAIN CONTENT ===== */
         .main-content {
             flex: 1;
+            min-width: 0;
             padding: 1.5rem;
             max-width: 100%;
             overflow-x: hidden;
+            width: 100%;
+        }
+        
+        /* Ensure content inside main-content doesn't overflow */
+        .main-content > .container,
+        .main-content > .container-fluid {
+            max-width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        /* Ensure content inside main-content doesn't overflow */
+        .main-content > .container,
+        .main-content > .container-fluid {
+            max-width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
         
         /* ===== PAGE HEADER ===== */
@@ -1146,6 +1179,111 @@
         .list-group-item:hover { background: var(--background); }
         
         /* ===== RESPONSIVE ===== */
+        
+        /* Mobile First - Base styles for all devices */
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Prevent horizontal scroll */
+        body {
+            max-width: 100vw;
+        }
+        
+        /* Ensure all containers are responsive */
+        .container, .container-fluid {
+            width: 100%;
+            max-width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
+        /* Tables - Always use table-responsive wrapper */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table {
+            width: 100%;
+            min-width: 600px; /* Minimum width for table content */
+            margin-bottom: 0;
+        }
+        
+        /* Table responsive adjustments by screen size */
+        @media (max-width: 575.98px) {
+            .table {
+                min-width: 450px;
+                font-size: 0.8rem;
+            }
+            
+            .table th, .table td {
+                padding: 0.4rem 0.3rem;
+                white-space: nowrap;
+            }
+            
+            /* Hide less critical columns on very small screens */
+            .table .d-mobile-none {
+                display: none !important;
+            }
+        }
+        
+        @media (min-width: 576px) and (max-width: 991.98px) {
+            .table {
+                min-width: 550px;
+            }
+        }
+        
+        /* Forms - Stack on mobile */
+        .form-row, .row {
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+        }
+        
+        .form-row > *, .row > * {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        /* Text wrapping */
+        .text-nowrap {
+            white-space: nowrap;
+        }
+        
+        /* Images and media */
+        img, video, iframe {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Cards */
+        .card {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        /* Buttons - Full width on mobile */
+        @media (max-width: 575.98px) {
+            .btn-group-vertical {
+                width: 100%;
+            }
+            
+            .btn-group-vertical > .btn {
+                width: 100%;
+                margin-bottom: 0.25rem;
+            }
+        }
+        
+        /* Navigation - Mobile */
         @media (max-width: 991px) {
             .sidebar {
                 position: fixed;
@@ -1154,6 +1292,8 @@
                 height: calc(100vh - 57px);
                 z-index: 1040;
                 transition: var(--transition);
+                width: 220px;
+                max-width: 85vw;
             }
             
             .sidebar.open { left: 0; }
@@ -1181,11 +1321,525 @@
                 cursor: pointer;
             }
             
-            .command-bar-wrapper { max-width: 300px; }
+            .command-bar-wrapper { 
+                max-width: 90vw;
+                width: 90vw;
+            }
+            
+            /* App container adjustments */
+            .app-container {
+                margin-left: 0 !important;
+                padding: 1rem 0.75rem;
+            }
+            
+            /* Header adjustments */
+            .navbar {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            /* Page headers */
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+            
+            .page-header > * {
+                width: 100%;
+            }
+            
+            /* Stats cards - Stack on mobile */
+            .stats-row, .summary-row {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Filter bars */
+            .filter-bar, .filter-row {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .filter-bar > *, .filter-row > * {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Forms */
+            .form-control, .form-select {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            /* Modals */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+            
+            /* FAB menu */
+            .fab-container {
+                bottom: 1rem;
+                right: 1rem;
+            }
+            
+            .fab-menu {
+                max-width: calc(100vw - 2rem);
+            }
+        }
+        
+        /* Tablet (iPad) - 768px to 991px */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+            .stats-row, .summary-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .col-md-6 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+            
+            .col-md-4 {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+        }
+        
+        /* Desktop - 992px and above */
+        @media (min-width: 992px) {
+            .mobile-toggle { display: none !important; }
+            
+            /* Sidebar is already part of flex layout, no margin needed */
+            .app-container {
+                margin-left: 0;
+                display: flex;
+            }
+            
+            .sidebar {
+                display: block;
+                position: sticky;
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            /* Ensure main content takes remaining space */
+            .main-content {
+                flex: 1;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+        }
+        
+        /* Large Desktop - 1200px and above */
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 1140px;
+            }
+        }
+        
+        /* Extra Large - 1400px and above */
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1320px;
+            }
+        }
+        
+        /* Small Mobile - 320px to 575px */
+        @media (max-width: 575.98px) {
+            /* Reduce font sizes */
+            h1, .h1 { font-size: 1.1rem !important; }
+            h2, .h2 { font-size: 1rem !important; }
+            h3, .h3 { font-size: 0.95rem !important; }
+            
+            /* Reduce padding */
+            .card-body {
+                padding: 0.75rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            /* Stack all columns */
+            [class*="col-"] {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            /* Tables - Smaller font on mobile */
+            .table {
+                font-size: 0.875rem;
+            }
+            
+            .table th, .table td {
+                padding: 0.5rem 0.25rem;
+            }
+            
+            /* Hide less important columns on very small screens */
+            .table .d-none-mobile {
+                display: none !important;
+            }
+        }
+        
+        /* Landscape Mobile - 576px to 767px */
+        @media (min-width: 576px) and (max-width: 767.98px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* Prevent text overflow */
+        .text-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Ensure dropdowns don't overflow */
+        .dropdown-menu {
+            max-width: calc(100vw - 2rem);
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        
+        /* Fix modals on mobile */
+        @media (max-width: 575.98px) {
+            .modal-content {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .modal-dialog {
+                margin: 0;
+                max-width: 100%;
+                height: 100%;
+            }
+        }
+        
+        /* Fix tooltips and popovers */
+        .tooltip, .popover {
+            max-width: calc(100vw - 2rem);
+            word-wrap: break-word;
+        }
+        
+        /* Ensure no element overflows viewport */
+        * {
+            max-width: 100%;
+        }
+        
+        /* Prevent all common overflow issues */
+        .main-content > * {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Ensure flex items don't overflow */
+        .d-flex, .flex {
+            min-width: 0;
+        }
+        
+        .d-flex > * {
+            min-width: 0;
+            flex-shrink: 1;
+        }
+        
+        /* Global overflow protection */
+        .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        
+        .row > * {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        /* Prevent any fixed width elements from breaking layout */
+        [style*="width"] {
+            max-width: 100% !important;
+        }
+        
+        /* Ensure all Bootstrap columns are responsive */
+        [class*="col-"] {
+            max-width: 100%;
+        }
+        
+        /* Fix flex containers */
+        .d-flex {
+            flex-wrap: wrap;
+        }
+        
+        /* Grid containers */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+        }
+        
+        .row > * {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        /* Fix badge and tag overflow */
+        .badge, .tag {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Search boxes */
+        .search-box {
+            width: 100%;
+            max-width: 100%;
+        }
+        
+        @media (min-width: 576px) {
+            .search-box {
+                max-width: 300px;
+            }
+        }
+        
+        /* Action buttons container */
+        .actions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        @media (max-width: 575.98px) {
+            .actions-container {
+                flex-direction: column;
+            }
+            
+            .actions-container .btn {
+                width: 100%;
+            }
+        }
+        
+        /* Fix charts and canvas */
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Chart containers */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        /* Fix pagination */
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        /* Fix breadcrumbs */
+        .breadcrumb {
+            flex-wrap: wrap;
+            overflow: hidden;
+        }
+        
+        /* Fix alerts */
+        .alert {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Fix input groups */
+        .input-group {
+            flex-wrap: wrap;
+        }
+        
+        @media (max-width: 575.98px) {
+            .input-group > .form-control,
+            .input-group > .form-select {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            
+            .input-group > .btn {
+                width: 100%;
+            }
+        }
+        
+        /* Fix navbar */
+        .navbar-nav {
+            flex-direction: column;
         }
         
         @media (min-width: 992px) {
-            .mobile-toggle { display: none !important; }
+            .navbar-nav {
+                flex-direction: row;
+            }
+        }
+        
+        /* Fix dropdown menus on mobile */
+        @media (max-width: 991.98px) {
+            .dropdown-menu {
+                position: static !important;
+                float: none;
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
+        
+        /* Fix command palette on mobile */
+        @media (max-width: 575.98px) {
+            .command-dropdown {
+                width: calc(100vw - 2rem);
+                max-width: calc(100vw - 2rem);
+                left: 1rem !important;
+                right: 1rem !important;
+            }
+        }
+        
+        /* Fix FAB menu on mobile */
+        @media (max-width: 575.98px) {
+            .fab-menu {
+                bottom: 4rem;
+                right: 1rem;
+                left: auto;
+                width: calc(100vw - 2rem);
+                max-width: 280px;
+            }
+        }
+        
+        /* Ensure proper touch targets on mobile */
+        @media (max-width: 991.98px) {
+            .btn, a, button, input, select, textarea {
+                min-height: 44px; /* iOS recommended touch target */
+            }
+        }
+        
+        /* Fix page titles and headers */
+        .page-title {
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            word-wrap: break-word;
+        }
+        
+        .page-subtitle {
+            font-size: clamp(0.875rem, 3vw, 1rem);
+        }
+        
+        /* Fix stat cards */
+        .stat-card {
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .stat-value {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            word-wrap: break-word;
+        }
+        
+        /* Fix property cards grid */
+        .property-item {
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        /* Fix tenant cards */
+        .tenant-cell, .property-cell {
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .tenant-name, .property-name {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Fix filter groups */
+        .filter-group {
+            min-width: 0;
+            flex: 1 1 auto;
+        }
+        
+        @media (max-width: 575.98px) {
+            .filter-group {
+                width: 100%;
+            }
+        }
+        
+        /* Fix summary cards */
+        .summary-card {
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        /* Fix building tags */
+        .building-tag, .unit-badge {
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Fix empty states */
+        .empty-state {
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        
+        /* Fix forms on mobile */
+        @media (max-width: 575.98px) {
+            .form-label {
+                font-size: 0.875rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            .form-control, .form-select {
+                font-size: 1rem; /* Prevents zoom on iOS */
+            }
+        }
+        
+        /* Fix date pickers */
+        input[type="date"], input[type="month"] {
+            font-size: 1rem; /* Prevents zoom on iOS */
+        }
+        
+        /* Fix number inputs */
+        input[type="number"] {
+            font-size: 1rem; /* Prevents zoom on iOS */
+        }
+        
+        /* Ensure proper z-index stacking */
+        .sidebar { z-index: 1040; }
+        .sidebar-overlay { z-index: 1039; }
+        .navbar { z-index: 1030; }
+        .modal { z-index: 1055; }
+        .dropdown-menu { z-index: 1000; }
+        .tooltip { z-index: 1080; }
+        .fab-container { z-index: 1020; }
+        
+        /* Fix sticky elements */
+        @media (max-width: 991.98px) {
+            .sticky-top {
+                position: relative;
+            }
+        }
+        
+        /* Fix print styles */
+        @media print {
+            .sidebar, .navbar, .fab-container, .btn, .pagination {
+                display: none !important;
+            }
+            
+            .app-container {
+                margin-left: 0 !important;
+            }
         }
         
         /* ===== LOADING ===== */
@@ -1295,6 +1949,7 @@
                 <div class="command-dropdown" id="commandDropdown">
                     <div class="command-section" id="quickActions">
                         <div class="command-section-title">Quick Actions</div>
+                        {% if user.role == 'OWNER' %}
                         <a href="{% url 'properties:add_building' %}" class="command-item">
                             <i class="bi bi-plus-lg"></i>
                             <div class="command-item-text">
@@ -1302,6 +1957,7 @@
                                 <div class="command-item-desc">Create a new building</div>
                             </div>
                         </a>
+                        {% endif %}
                         <a href="{% url 'properties:add_tenant' %}" class="command-item">
                             <i class="bi bi-person-plus"></i>
                             <div class="command-item-text">
@@ -1477,10 +2133,12 @@
     <!-- Quick Action FAB -->
     <div class="fab-container">
         <div class="fab-menu" id="fabMenu">
+            {% if user.role == 'OWNER' %}
             <a href="{% url 'properties:add_building' %}" class="fab-item">
                 <i class="bi bi-building-add"></i>
                 <span>Add Property</span>
             </a>
+            {% endif %}
             <a href="{% url 'properties:add_tenant' %}" class="fab-item">
                 <i class="bi bi-person-plus"></i>
                 <span>Add Resident</span>
@@ -1620,7 +2278,9 @@
             // Cmd/Ctrl + Shift shortcuts (avoid conflicts with browser shortcuts)
             // Cmd+R = browser refresh, Cmd+P = print, so we use Shift+Alt combos instead
             if (e.altKey && e.shiftKey) {
+                {% if user.role == 'OWNER' %}
                 if (e.key === 'P' || e.key === 'p') { e.preventDefault(); window.location.href = '{% url "properties:add_building" %}'; }
+                {% endif %}
                 if (e.key === 'T' || e.key === 't') { e.preventDefault(); window.location.href = '{% url "properties:add_tenant" %}'; }
                 if (e.key === 'M' || e.key === 'm') { e.preventDefault(); window.location.href = '{% url "properties:add_rent" %}'; }
                 if (e.key === 'I' || e.key === 'i') { e.preventDefault(); window.location.href = '{% url "properties:add_issue" %}'; }

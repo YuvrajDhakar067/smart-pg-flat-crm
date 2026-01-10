@@ -28,6 +28,19 @@ from .forms import (
 logger = logging.getLogger(__name__)
 
 
+def owner_required(view_func):
+    """Decorator to require OWNER role"""
+    @functools.wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('accounts:login')
+        if not hasattr(request.user, 'role') or request.user.role != 'OWNER':
+            messages.error(request, 'Only owners can perform this action.')
+            return redirect('properties:dashboard')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 @login_required
 @owner_or_manager_required
 @handle_errors
@@ -2404,10 +2417,10 @@ def search(request):
 # ==================== FORM VIEWS (Custom Forms instead of Admin) ====================
 
 @login_required
-@owner_or_manager_required
+@owner_required
 @handle_errors
 def add_building(request):
-    """Add building form with inline units/rooms"""
+    """Add building form with inline units/rooms (Owner only)"""
     account = getattr(request, 'account', None)
     if not account and hasattr(request.user, 'account') and request.user.account:
         account = request.user.account
@@ -2418,9 +2431,37 @@ def add_building(request):
         messages.warning(request, 'Your account is not properly configured.')
         return redirect('accounts:profile')
     
+    # Check property limit before allowing creation
+    from common.utils import get_site_settings
+    site_settings = get_site_settings()
+    max_properties = site_settings.max_properties_per_owner
+    
+    if max_properties > 0:  # 0 means unlimited
+        current_property_count = Building.objects.filter(account=account).count()
+        if current_property_count >= max_properties:
+            from django.contrib import messages
+            messages.error(
+                request, 
+                f'You have reached the maximum limit of {max_properties} properties. '
+                f'Please contact administrator to increase your limit.'
+            )
+            return redirect('properties:building_list')
+    
     if request.method == 'POST':
         form = BuildingForm(request.POST)
         if form.is_valid():
+            # Double-check limit before saving (in case of race condition)
+            if max_properties > 0:
+                current_property_count = Building.objects.filter(account=account).count()
+                if current_property_count >= max_properties:
+                    from django.contrib import messages
+                    messages.error(
+                        request, 
+                        f'You have reached the maximum limit of {max_properties} properties. '
+                        f'Please contact administrator to increase your limit.'
+                    )
+                    return redirect('properties:building_list')
+            
             building = form.save(commit=False)
             building.account = account
             building.save()
@@ -3316,20 +3357,6 @@ def add_issue(request, unit_id=None):
 # TEAM MANAGEMENT (OWNER ONLY)
 # ============================================================================
 
-def owner_required(view_func):
-    """Decorator to require OWNER role"""
-    @functools.wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect('accounts:login')
-        if not hasattr(request.user, 'role') or request.user.role != 'OWNER':
-            from django.contrib import messages
-            messages.error(request, 'Only owners can access team management.')
-            return redirect('properties:dashboard')
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
 @login_required
 @owner_required
 @handle_errors
@@ -3376,9 +3403,24 @@ def add_manager(request):
     """Add a new manager (Owner only)"""
     from users.models import User
     from django.contrib.auth.hashers import make_password
+    from common.utils import get_site_settings
     
     account = request.user.account
     all_buildings = Building.objects.filter(account=account).order_by('name')
+    
+    # Check manager limit before allowing creation
+    site_settings = get_site_settings()
+    max_managers = site_settings.max_managers_per_owner
+    
+    if max_managers > 0:  # 0 means unlimited
+        current_manager_count = User.objects.filter(account=account, role='MANAGER').count()
+        if current_manager_count >= max_managers:
+            messages.error(
+                request, 
+                f'You have reached the maximum limit of {max_managers} managers. '
+                f'Please contact administrator to increase your limit.'
+            )
+            return redirect('properties:team_management')
     
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -3402,6 +3444,12 @@ def add_manager(request):
             errors.append('Password must be at least 6 characters')
         elif password != confirm_password:
             errors.append('Passwords do not match')
+        
+        # Double-check manager limit before creating (prevent race condition)
+        if max_managers > 0:
+            current_manager_count = User.objects.filter(account=account, role='MANAGER').count()
+            if current_manager_count >= max_managers:
+                errors.append(f'You have reached the maximum limit of {max_managers} managers.')
         
         if errors:
             for error in errors:

@@ -1,13 +1,14 @@
 from django.contrib import admin
 from .models import (
-    SiteSettings, ContentBlock, StatusLabel, 
-    NotificationTemplate, PricingPlan, HelpArticle, EditingSession
+    SiteSettings, ContentBlock, EditingSession
+    # StatusLabel, NotificationTemplate - kept for future use but not actively used
+    # PricingPlan, HelpArticle - removed as unused
 )
 
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(admin.ModelAdmin):
-    list_display = ['site_name', 'company_name', 'company_email', 'updated_at']
+    list_display = ['site_name', 'company_name', 'company_email', 'max_properties_per_owner', 'max_managers_per_owner', 'updated_at']
     fieldsets = (
         ('Basic Information', {
             'fields': ('site_name', 'site_tagline', 'company_name', 'company_email', 
@@ -22,6 +23,20 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         }),
         ('Rent Settings', {
             'fields': ('auto_generate_rent', 'rent_due_day')
+        }),
+        ('Property Limits', {
+            'fields': ('max_properties_per_owner',),
+            'description': 'Set the maximum number of properties each owner can add. Set to 0 for unlimited.'
+        }),
+        ('Manager Limits', {
+            'fields': ('max_managers_per_owner',),
+            'description': 'Set the maximum number of managers each owner can create. Set to 0 for unlimited.'
+        }),
+        ('About & Contact', {
+            'fields': ('about_us', 'contact_email', 'contact_phone', 'contact_address')
+        }),
+        ('Legal Pages', {
+            'fields': ('terms_and_conditions', 'privacy_policy')
         }),
         ('Currency', {
             'fields': ('currency_symbol', 'currency_code')
@@ -48,39 +63,10 @@ class ContentBlockAdmin(admin.ModelAdmin):
     list_editable = ['is_active', 'order']
 
 
-@admin.register(StatusLabel)
-class StatusLabelAdmin(admin.ModelAdmin):
-    list_display = ['status_type', 'code', 'label', 'color', 'is_active', 'order']
-    list_filter = ['status_type', 'is_active']
-    search_fields = ['code', 'label']
-    list_editable = ['label', 'color', 'is_active', 'order']
+# StatusLabel and NotificationTemplate kept in models but not registered in admin
+# as they're not actively used. Can be enabled if needed for future features.
 
-
-@admin.register(NotificationTemplate)
-class NotificationTemplateAdmin(admin.ModelAdmin):
-    list_display = ['template_type', 'subject', 'is_active', 'updated_at']
-    list_filter = ['is_active', 'template_type']
-    search_fields = ['subject', 'message']
-    list_editable = ['is_active']
-
-
-@admin.register(PricingPlan)
-class PricingPlanAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'billing_period', 'max_buildings', 'max_units', 'is_active', 'is_popular', 'order']
-    list_filter = ['is_active', 'is_popular', 'billing_period']
-    search_fields = ['name', 'slug']
-    list_editable = ['is_active', 'is_popular', 'order']
-    prepopulated_fields = {'slug': ('name',)}
-
-
-@admin.register(HelpArticle)
-class HelpArticleAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'is_active', 'views', 'order']
-    list_filter = ['category', 'is_active']
-    search_fields = ['title', 'content']
-    list_editable = ['is_active', 'order']
-    prepopulated_fields = {'slug': ('title',)}
-
+# PricingPlan and HelpArticle removed - not used anywhere
 
 @admin.register(EditingSession)
 class EditingSessionAdmin(admin.ModelAdmin):

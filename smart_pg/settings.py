@@ -3,7 +3,6 @@ Django settings for smart_pg project.
 """
 
 from pathlib import Path
-import os
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -34,7 +33,11 @@ INSTALLED_APPS = [
     'django.contrib.humanize',  # For naturaltime, intcomma, etc.
     'rest_framework',
     'rest_framework_simplejwt',
+    # Core - Base abstractions and utilities
+    'core',
+    # Common - Shared utilities and middleware
     'common',  # Settings and content management
+    # Domain Apps - Business logic domains
     'accounts',  # SaaS accounts
     'users',  # Custom User model (Owner/Manager)
     'buildings',  # Buildings
@@ -258,6 +261,10 @@ AUTH_USER_MODEL = 'users.User'
 LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'properties:dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
+
+# Background Task Scheduler
+# Set to False to disable automatic monthly rent generation
+ENABLE_BACKGROUND_SCHEDULER = True
 
 # CSRF Settings
 CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']

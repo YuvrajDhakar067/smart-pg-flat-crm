@@ -525,9 +525,13 @@
                     </div>
                     <h4 class="text-primary mb-3">No PG Properties Yet</h4>
                     <p class="text-muted mb-4">Start managing PG accommodations by adding your first PG property.</p>
+                    {% if user.role == 'OWNER' %}
                     <a href="{% url 'properties:add_building' %}" class="btn btn-primary btn-lg">
                         <i class="bi bi-plus-circle me-2"></i> Add PG Property
                     </a>
+                    {% else %}
+                    <p class="text-muted">Please contact the owner to add PG properties.</p>
+                    {% endif %}
                 </div>
             {% endif %}
         {% endif %}

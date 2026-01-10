@@ -1,12 +1,15 @@
 """
 Management command to generate monthly rent records for all active occupancies.
-Run this command at the start of each month to ensure all tenants have rent entries.
+
+This command is automatically run by the background scheduler on the 1st of each month at 00:00.
+You can also run it manually for testing or to generate rent for the current month.
 
 Usage:
     python manage.py generate_monthly_rent
-    
-Can be added to crontab to run automatically:
-    0 0 1 * * cd /path/to/project && python manage.py generate_monthly_rent
+    python manage.py generate_monthly_rent --dry-run  # Preview without creating records
+
+Note: The background scheduler (APScheduler) automatically runs this command monthly.
+      To disable automatic scheduling, set ENABLE_BACKGROUND_SCHEDULER = False in settings.
 """
 
 from django.core.management.base import BaseCommand

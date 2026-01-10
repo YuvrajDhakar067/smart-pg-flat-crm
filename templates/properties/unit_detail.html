@@ -25,6 +25,7 @@
                 <h5><i class="bi bi-info-circle"></i> Basic Information</h5>
             </div>
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table table-borderless">
                     <tr>
                         <th width="40%">Type:</th>
@@ -59,6 +60,7 @@
                     </tr>
                     {% endif %}
                 </table>
+                </div>
             </div>
         </div>
     </div>
@@ -70,6 +72,7 @@
                 <h5><i class="bi bi-cash-stack"></i> Revenue Summary</h5>
             </div>
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table table-borderless">
                     <tr>
                         <th width="50%">Total Rent Paid:</th>
@@ -80,6 +83,8 @@
                         <td><strong class="text-danger">{{ site_settings.currency_symbol|default:"₹" }}{{ pending_rent|floatformat:0 }}</strong></td>
                     </tr>
                 </table>
+                </div>
+            </div>
             </div>
         </div>
     </div>

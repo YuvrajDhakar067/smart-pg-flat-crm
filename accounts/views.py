@@ -1,10 +1,8 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -17,47 +15,15 @@ from api.filters import AccountFilterBackend
 # Template views (for frontend)
 @csrf_protect
 def register(request):
-    """User self-registration"""
-    from users.models import User
-    from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
-    
-    class UserCreationForm(BaseUserCreationForm):
-        """Custom form that works with our User model"""
-        class Meta:
-            model = User
-            fields = ("username",)
-    
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password1')
-            
-            # Create account first
-            account_name = request.POST.get('account_name', username)
-            account = Account.objects.create(
-                name=account_name,
-                plan='FREE',
-                phone=request.POST.get('phone', '')
-            )
-            
-            # Create user with account
-            user = form.save(commit=False)
-            user.account = account
-            user.role = 'OWNER'
-            user.phone = request.POST.get('phone', '')
-            user.save()
-            
-            # Auto login
-            user = authenticate(username=username, password=password)
-            if user:
-                login(request, user)
-                messages.success(request, f'Welcome {username}! Your account has been created.')
-                return redirect('properties:dashboard')
-    else:
-        form = UserCreationForm()
-    
-    return render(request, 'accounts/register.html', {'form': form})
+    """
+    Registration is disabled. Only administrators can create accounts.
+    Accounts and owners must be created through Django Admin.
+    """
+    messages.info(
+        request, 
+        'Public registration is disabled. Please contact the administrator to create an account for you.'
+    )
+    return redirect('accounts:login')
 
 
 @csrf_protect

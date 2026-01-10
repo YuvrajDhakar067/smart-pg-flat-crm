@@ -225,9 +225,11 @@
         <h1 class="page-title"><i class="bi bi-buildings text-primary me-2"></i>My Properties</h1>
         <p class="page-subtitle mb-0">Manage all your properties, units, and rooms in one place</p>
     </div>
+    {% if user.role == 'OWNER' %}
     <a href="{% url 'properties:add_building' %}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i> Add Property
     </a>
+    {% endif %}
 </div>
 
 <!-- Summary Cards -->
@@ -435,9 +437,13 @@
             </div>
             <h3 class="empty-title">No Properties Yet</h3>
             <p class="empty-text">Start by adding your first property. You can add flats, PG accommodations, or mixed properties.</p>
+            {% if user.role == 'OWNER' %}
             <a href="{% url 'properties:add_building' %}" class="btn btn-primary btn-lg">
                 <i class="bi bi-plus-lg me-2"></i> Add Your First Property
             </a>
+            {% else %}
+            <p class="text-muted">Please contact the owner to add properties.</p>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
