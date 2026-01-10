@@ -280,11 +280,13 @@
         <i class="bi bi-person-plus me-1"></i> Add Your First Manager
     </a>
     {% else %}
+    {% if max_managers > 0 and total_managers >= max_managers %}
     <p class="text-danger">
         <i class="bi bi-exclamation-triangle me-1"></i>
         You have reached the maximum limit of {{ max_managers }} managers. 
         Please contact administrator to increase your limit.
     </p>
+    {% endif %}
     {% endif %}
 </div>
 {% endif %}

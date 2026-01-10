@@ -3387,12 +3387,22 @@ def team_management(request):
     limit_service = AccountLimitService()
     limit_info = limit_service.get_limit_info(account)
     
+    # Extract values for template (for easier access)
+    max_managers = limit_info['managers']['max']
+    can_add_manager = limit_info['managers']['can_add']
+    max_properties = limit_info['properties']['max']
+    can_add_property = limit_info['properties']['can_add']
+    
     context = {
         'managers': manager_list,
         'total_managers': managers.count(),
         'all_buildings': all_buildings,
         'owner': request.user,
-        'limit_info': limit_info,  # Add limit info to context
+        'limit_info': limit_info,
+        'max_managers': max_managers,
+        'can_add_manager': can_add_manager,
+        'max_properties': max_properties,
+        'can_add_property': can_add_property,
     }
     
     return render(request, 'properties/team_management.html', context)
