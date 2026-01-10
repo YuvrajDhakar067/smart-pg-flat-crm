@@ -11,14 +11,37 @@ logger = logging.getLogger(__name__)
 def get_site_settings():
     """Get site settings (cached)"""
     try:
-        return SiteSettings.load()
+        settings = SiteSettings.load()
+        # Ensure missing fields have defaults (in case migration not applied)
+        if not hasattr(settings, 'max_properties_per_owner'):
+            settings.max_properties_per_owner = 10
+        if not hasattr(settings, 'max_managers_per_owner'):
+            settings.max_managers_per_owner = 5
+        return settings
     except Exception as e:
-        logger.error(f"Error loading site settings: {e}")
-        # Return default settings if error
-        return SiteSettings(
-            site_name="Smart PG & Flat Management CRM",
-            currency_symbol="₹"
-        )
+        # Handle database schema errors (e.g., missing columns from pending migrations)
+        error_msg = str(e)
+        if 'does not exist' in error_msg.lower() or 'no such column' in error_msg.lower() or 'undefinedcolumn' in error_msg.lower():
+            logger.warning(f"Site settings columns missing (migration may be pending): {e}")
+            # Return default settings object with all fields
+            # This allows the app to work even if migration hasn't been applied yet
+            settings = SiteSettings()
+            settings.pk = 1
+            settings.site_name = "Smart PG & Flat Management CRM"
+            settings.currency_symbol = "₹"
+            settings.max_properties_per_owner = 10  # Default value
+            settings.max_managers_per_owner = 5  # Default value
+            return settings
+        else:
+            logger.error(f"Error loading site settings: {e}")
+            # Return default settings if error
+            settings = SiteSettings()
+            settings.pk = 1
+            settings.site_name = "Smart PG & Flat Management CRM"
+            settings.currency_symbol = "₹"
+            settings.max_properties_per_owner = 10
+            settings.max_managers_per_owner = 5
+            return settings
 
 
 def get_content_block(key, default=""):

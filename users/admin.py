@@ -6,38 +6,52 @@ from .models import User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """
-    User Management - Create owners and managers here.
+    ⭐ USER MANAGEMENT - Create Owners and Managers ⭐
     
     IMPORTANT: Public registration is disabled. Only admins can create users.
     
-    To create a new owner:
-    1. First create an Account in the Accounts section
-    2. Then create a User here with:
-       - Select the Account you created
-       - Set Role to 'OWNER'
-       - Set username, email, and password
-    3. The owner can then login and start using the system
+    ──────────────────────────────────────────────────────────────
+    HOW TO CREATE A NEW CLIENT (OWNER):
+    ──────────────────────────────────────────────────────────────
+    1. First, go to "Accounts" section and create an Account
+    2. Then come back here and click "Add User"
+    3. Fill in:
+       - Username: Choose a unique username
+       - Password: Set a secure password (user can change later)
+       - Email: Owner's email address
+       - Account: Select the Account you created in step 1
+       - Role: Select "OWNER" (this is important!)
+       - Phone: Optional
+    4. Click "Save"
+    5. The owner can now login at /accounts/login/
     
-    To create a manager:
-    1. Select an existing Account
-    2. Create a User with Role 'MANAGER'
-    3. The owner can then grant building access to this manager
+    ──────────────────────────────────────────────────────────────
+    HOW TO CREATE A MANAGER:
+    ──────────────────────────────────────────────────────────────
+    1. Click "Add User"
+    2. Fill in:
+       - Username, Password, Email
+       - Account: Select the Account that owns the properties
+       - Role: Select "MANAGER"
+    3. Click "Save"
+    4. The owner can then grant building access to this manager
+       (from the main application, not admin)
     """
-    list_display = ['username', 'email', 'account', 'role', 'is_active', 'date_joined']
-    list_filter = ['role', 'is_active', 'account']
-    search_fields = ['username', 'email', 'account__name']
+    list_display = ['username', 'email', 'account', 'role', 'is_active', 'is_staff', 'date_joined']
+    list_filter = ['role', 'is_active', 'is_staff', 'account']
+    search_fields = ['username', 'email', 'account__name', 'phone']
     
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('Account Information', {
+        ('⭐ Account Information (REQUIRED)', {
             'fields': ('account', 'role', 'phone'),
-            'description': 'Account is required. Create an Account first if it does not exist.'
+            'description': '⚠️ Account is required! If you don\'t see the account, go to Accounts section and create it first. Role must be OWNER for clients or MANAGER for staff.'
         }),
     )
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('Account Information', {
+        ('⭐ Account Information (REQUIRED)', {
             'fields': ('account', 'role', 'phone'),
-            'description': 'IMPORTANT: Account must be created first. Public registration is disabled.'
+            'description': '⚠️ IMPORTANT: Account must be created first in Accounts section. Public registration is disabled. Role: OWNER for clients, MANAGER for staff.'
         }),
     )
     

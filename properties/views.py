@@ -2434,7 +2434,7 @@ def add_building(request):
     # Check property limit before allowing creation
     from common.utils import get_site_settings
     site_settings = get_site_settings()
-    max_properties = site_settings.max_properties_per_owner
+    max_properties = getattr(site_settings, 'max_properties_per_owner', 10)  # Default to 10 if field doesn't exist
     
     if max_properties > 0:  # 0 means unlimited
         current_property_count = Building.objects.filter(account=account).count()
@@ -3410,7 +3410,7 @@ def add_manager(request):
     
     # Check manager limit before allowing creation
     site_settings = get_site_settings()
-    max_managers = site_settings.max_managers_per_owner
+    max_managers = getattr(site_settings, 'max_managers_per_owner', 5)  # Default to 5 if field doesn't exist
     
     if max_managers > 0:  # 0 means unlimited
         current_manager_count = User.objects.filter(account=account, role='MANAGER').count()

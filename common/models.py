@@ -1,71 +1,91 @@
 from django.db import models
-from django.utils import timezone
-from django.conf import settings
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import (
+    MinValueValidator, MaxValueValidator
+)
 
 
 class SiteSettings(models.Model):
-    """Singleton model for site-wide settings"""
-    site_name = models.CharField(max_length=200, default='Smart PG & Flat Management CRM')
-    site_tagline = models.CharField(max_length=255, default='One dashboard to know everything about your property')
-    company_name = models.CharField(max_length=200, default='Property Management Co.')
-    company_email = models.CharField(max_length=200, default='info@example.com')
-    company_phone = models.CharField(max_length=20, default='+91 1234567890')
-    company_address = models.TextField(default='Your Company Address')
-    primary_color = models.CharField(max_length=7, default='#2563eb', help_text='Hex color code')
-    secondary_color = models.CharField(max_length=7, default='#64748b', help_text='Hex color code')
-    enable_tenant_portal = models.BooleanField(default=False, help_text='Allow tenants to login')
-    enable_sms_notifications = models.BooleanField(default=False)
-    enable_email_notifications = models.BooleanField(default=False)
-    auto_generate_rent = models.BooleanField(default=False, help_text='Auto-create rent entries each month')
-    rent_due_day = models.IntegerField(
-        default=5,
-        help_text='Day of month when rent is due',
-        validators=[MinValueValidator(1), MaxValueValidator(28)]
-    )
-    currency_symbol = models.CharField(max_length=10, default='₹')
-    currency_code = models.CharField(max_length=10, default='INR')
-    footer_text = models.TextField(default='Built with ❤️ for Property Owners & Managers')
+    """
+    Site-wide settings (singleton pattern - only one instance)
+    """
+    site_name = models.CharField(max_length=200, default="Smart PG & Flat Management CRM")
+    site_tagline = models.CharField(max_length=500, blank=True, default="")
+    company_name = models.CharField(max_length=200, blank=True, default="")
+    company_email = models.EmailField(blank=True, default="")
+    company_phone = models.CharField(max_length=20, blank=True, default="")
+    company_address = models.TextField(blank=True, default="")
     
-    # Property Limits
+    # Branding
+    primary_color = models.CharField(max_length=7, blank=True, default="#007bff")
+    secondary_color = models.CharField(max_length=7, blank=True, default="#6c757d")
+    
+    # Features
+    enable_tenant_portal = models.BooleanField(default=False)
+    enable_sms_notifications = models.BooleanField(default=False)
+    enable_email_notifications = models.BooleanField(default=True)
+    
+    # Rent Settings
+    auto_generate_rent = models.BooleanField(default=True)
+    rent_due_day = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(28)])
+    
+    # Currency
+    currency_symbol = models.CharField(max_length=10, default="₹")
+    currency_code = models.CharField(max_length=3, default="INR")
+    
+    # Footer
+    footer_text = models.TextField(blank=True, default="")
+    
+    # Property and Manager Limits (added in migration 0003)
     max_properties_per_owner = models.IntegerField(
         default=10,
-        help_text='Maximum number of properties (buildings) each owner can add. Set to 0 for unlimited.',
-        validators=[MinValueValidator(0)]
+        help_text="Maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. Default: 10",
+        verbose_name="Max Properties Per Owner"
     )
-    
-    # Manager Limits
     max_managers_per_owner = models.IntegerField(
         default=5,
-        help_text='Maximum number of managers each owner can create. Set to 0 for unlimited.',
-        validators=[MinValueValidator(0)]
+        help_text="Maximum number of managers each owner can create. Set to 0 for unlimited. Default: 5",
+        verbose_name="Max Managers Per Owner"
     )
     
-    # About & Contact Information
+    # About & Contact (added in migration 0003)
     about_us = models.TextField(
-        blank=True,
-        help_text='About Us content (HTML allowed)'
+        blank=True, 
+        default="",
+        help_text="About us content displayed on the website",
+        verbose_name="About Us"
     )
     contact_email = models.EmailField(
-        blank=True,
-        help_text='Contact email for support/inquiries'
+        blank=True, 
+        default="",
+        help_text="Contact email address for customer support",
+        verbose_name="Contact Email"
     )
     contact_phone = models.CharField(
-        max_length=20,
-        blank=True,
-        help_text='Contact phone number'
+        max_length=20, 
+        blank=True, 
+        default="",
+        help_text="Contact phone number for customer support",
+        verbose_name="Contact Phone"
     )
     contact_address = models.TextField(
-        blank=True,
-        help_text='Contact address'
+        blank=True, 
+        default="",
+        help_text="Contact address for customer support",
+        verbose_name="Contact Address"
     )
+    
+    # Legal Pages (added in migration 0003)
     terms_and_conditions = models.TextField(
-        blank=True,
-        help_text='Terms and Conditions (HTML allowed)'
+        blank=True, 
+        default="",
+        help_text="Terms and conditions content for the website",
+        verbose_name="Terms and Conditions"
     )
     privacy_policy = models.TextField(
-        blank=True,
-        help_text='Privacy Policy (HTML allowed)'
+        blank=True, 
+        default="",
+        help_text="Privacy policy content for the website",
+        verbose_name="Privacy Policy"
     )
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -77,9 +97,98 @@ class SiteSettings(models.Model):
     
     @classmethod
     def load(cls):
-        """Get or create the singleton instance"""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        """Get or create the singleton instance - handles missing columns gracefully"""
+        from django.db import connection
+        
+        try:
+            # First, check which columns exist in the database
+            existing_columns = set()
+            try:
+                if 'postgresql' in connection.vendor:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT column_name 
+                            FROM information_schema.columns 
+                            WHERE table_name='common_sitesettings'
+                        """)
+                        existing_columns = {row[0] for row in cursor.fetchall()}
+                elif 'sqlite' in connection.vendor:
+                    with connection.cursor() as cursor:
+                        cursor.execute("PRAGMA table_info(common_sitesettings)")
+                        existing_columns = {row[1] for row in cursor.fetchall()}
+            except Exception:
+                # If we can't check columns, try Django ORM and let it fail gracefully
+                existing_columns = None
+            
+            # Try to get existing object using raw SQL to avoid missing columns
+            if existing_columns:
+                try:
+                    # Build SELECT query with only existing columns
+                    base_columns = ['id', 'site_name', 'currency_symbol', 'currency_code', 
+                                    'company_name', 'company_email', 'company_phone', 'company_address',
+                                    'site_tagline', 'primary_color', 'secondary_color',
+                                    'enable_tenant_portal', 'enable_sms_notifications', 'enable_email_notifications',
+                                    'auto_generate_rent', 'rent_due_day', 'footer_text']
+                    
+                    # Only include columns that exist
+                    select_columns = [col for col in base_columns if col in existing_columns]
+                    
+                    if select_columns and 'id' in select_columns:
+                        if 'postgresql' in connection.vendor:
+                            with connection.cursor() as cursor:
+                                cursor.execute(f"""
+                                    SELECT {', '.join(select_columns)}
+                                    FROM common_sitesettings WHERE id = 1
+                                """)
+                                row = cursor.fetchone()
+                                if row:
+                                    obj = cls()
+                                    obj.pk = 1
+                                    # Map columns to attributes
+                                    col_map = dict(zip(select_columns, row))
+                                    for col, val in col_map.items():
+                                        setattr(obj, col, val)
+                                    # Set defaults for missing fields (won't be saved to DB)
+                                    obj.max_properties_per_owner = 10
+                                    obj.max_managers_per_owner = 5
+                                    return obj
+                except Exception:
+                    pass
+            
+            # Fallback: Try Django ORM (will fail if columns don't exist, but we'll catch it)
+            try:
+                obj, _ = cls.objects.get_or_create(pk=1)
+                # Set defaults for missing fields
+                if not hasattr(obj, 'max_properties_per_owner'):
+                    obj.max_properties_per_owner = 10
+                if not hasattr(obj, 'max_managers_per_owner'):
+                    obj.max_managers_per_owner = 5
+                return obj
+            except Exception as create_error:
+                # If get_or_create fails due to missing columns
+                error_msg = str(create_error).lower()
+                if 'does not exist' in error_msg or 'no such column' in error_msg or 'undefinedcolumn' in error_msg:
+                    # Return a minimal object with defaults (not saved to DB)
+                    obj = cls()
+                    obj.pk = 1
+                    obj.site_name = "Smart PG & Flat Management CRM"
+                    obj.currency_symbol = "₹"
+                    obj.max_properties_per_owner = 10
+                    obj.max_managers_per_owner = 5
+                    return obj
+                raise
+        except Exception as e:
+            # Last resort: return a minimal object with defaults
+            error_msg = str(e).lower()
+            if 'does not exist' in error_msg or 'no such column' in error_msg or 'undefinedcolumn' in error_msg:
+                obj = cls()
+                obj.pk = 1
+                obj.site_name = "Smart PG & Flat Management CRM"
+                obj.currency_symbol = "₹"
+                obj.max_properties_per_owner = 10
+                obj.max_managers_per_owner = 5
+                return obj
+            raise
     
     def __str__(self):
         return self.site_name
@@ -87,140 +196,84 @@ class SiteSettings(models.Model):
 
 class ContentBlock(models.Model):
     BLOCK_TYPE_CHOICES = [
-        ('dashboard_welcome', 'Dashboard Welcome Message'),
-        ('vacancy_alert', 'Vacancy Alert Message'),
-        ('rent_reminder', 'Rent Reminder Message'),
-        ('issue_notification', 'Issue Notification Message'),
-        ('help_text', 'Help Text'),
-        ('terms', 'Terms and Conditions'),
-        ('privacy', 'Privacy Policy'),
-        ('about', 'About Us'),
-        ('custom', 'Custom Block'),
+        ('text', 'Text'),
+        ('html', 'HTML'),
+        ('image', 'Image'),
+        ('video', 'Video'),
     ]
     
-    key = models.CharField(max_length=100, unique=True, help_text='Unique identifier for this content')
-    block_type = models.CharField(max_length=50, choices=BLOCK_TYPE_CHOICES, default='custom')
+    key = models.SlugField(unique=True, help_text="Unique identifier for this content block")
+    block_type = models.CharField(max_length=20, choices=BLOCK_TYPE_CHOICES, default='text')
     title = models.CharField(max_length=200, blank=True)
-    content = models.TextField(help_text='HTML content allowed')
+    content = models.TextField(blank=True)
+    image = models.ImageField(upload_to='content_blocks/', blank=True, null=True)
+    video_url = models.URLField(blank=True)
     is_active = models.BooleanField(default=True)
-    order = models.IntegerField(default=0, help_text='Display order')
+    order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        ordering = ['order', 'title']
         verbose_name = 'Content Block'
         verbose_name_plural = 'Content Blocks'
-        ordering = ['order', 'key']
     
     def __str__(self):
-        return f"{self.key} ({self.block_type})"
+        return self.title or self.key
 
+
+# StatusLabel and NotificationTemplate kept in models but not actively used
+# Can be enabled if needed for future features
 
 class StatusLabel(models.Model):
-    STATUS_TYPE_CHOICES = [
-        ('unit', 'Unit Status'),
-        ('rent', 'Rent Status'),
-        ('issue', 'Issue Status'),
-        ('occupancy', 'Occupancy Status'),
-    ]
-    
-    status_type = models.CharField(max_length=50, choices=STATUS_TYPE_CHOICES)
-    code = models.CharField(max_length=50, help_text="Internal code (e.g., 'occupied', 'vacant')")
-    label = models.CharField(max_length=100, help_text='Display label')
-    color = models.CharField(max_length=7, default='#64748b', help_text='Hex color code')
-    icon = models.CharField(max_length=50, blank=True, help_text='Bootstrap icon class')
-    order = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
+    """Custom status labels for various entities"""
+    name = models.CharField(max_length=50, unique=True)
+    color = models.CharField(max_length=7, default="#007bff")
+    description = models.TextField(blank=True)
     
     class Meta:
-        verbose_name = 'Status Label'
-        verbose_name_plural = 'Status Labels'
-        ordering = ['status_type', 'order']
-        unique_together = [('status_type', 'code')]
+        ordering = ['name']
     
     def __str__(self):
-        return f"{self.status_type}: {self.label}"
+        return self.name
 
 
 class NotificationTemplate(models.Model):
-    TEMPLATE_TYPE_CHOICES = [
-        ('rent_due', 'Rent Due Reminder'),
-        ('rent_paid', 'Rent Payment Confirmation'),
-        ('issue_raised', 'Issue Raised Notification'),
-        ('issue_resolved', 'Issue Resolved Notification'),
-        ('tenant_welcome', 'Tenant Welcome Message'),
-        ('vacancy_alert', 'Vacancy Alert'),
-    ]
-    
-    template_type = models.CharField(max_length=50, choices=TEMPLATE_TYPE_CHOICES, unique=True)
-    subject = models.CharField(max_length=200, help_text='Email subject or SMS prefix')
-    message = models.TextField(help_text='Use {{variable}} for dynamic content')
+    """Templates for notifications"""
+    name = models.CharField(max_length=100, unique=True)
+    subject = models.CharField(max_length=200)
+    body = models.TextField()
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name = 'Notification Template'
-        verbose_name_plural = 'Notification Templates'
+        ordering = ['name']
     
     def __str__(self):
-        return f"{self.template_type}: {self.subject}"
+        return self.name
 
 
-# PricingPlan and HelpArticle models removed - not used anywhere in the application
-# If needed in future, can be re-added
-
-# class PricingPlan(models.Model):
-#     """Removed - not used"""
-#     pass
-#
-# class HelpArticle(models.Model):
-#     """Removed - not used"""
-#     pass
-
-
+# EditingSession model for concurrent editing detection
 class EditingSession(models.Model):
-    """
-    Tracks active editing sessions to prevent concurrent edits.
-    Shows "Someone is editing this" warnings.
-    """
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='editing_sessions'
-    )
-    
-    # Resource being edited
-    resource_type = models.CharField(max_length=50)  # 'occupancy', 'rent', 'unit', 'bed', etc.
+    """Track active editing sessions to prevent concurrent edits"""
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='editing_sessions')
+    resource_type = models.CharField(max_length=50)  # e.g., 'building', 'unit', 'tenant'
     resource_id = models.IntegerField()
-    
-    # Session info
+    action = models.CharField(max_length=20, default='edit')  # 'edit', 'view'
     started_at = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
-    
-    # Additional context
-    action = models.CharField(max_length=50, default='edit')  # 'edit', 'assign', 'checkout', etc.
     
     class Meta:
-        unique_together = ['resource_type', 'resource_id']
+        unique_together = ['resource_type', 'resource_id', 'user']
         indexes = [
             models.Index(fields=['resource_type', 'resource_id']),
             models.Index(fields=['last_activity']),
         ]
-        ordering = ['-last_activity']
-    
-    def __str__(self):
-        return f"{self.user.username} editing {self.resource_type}#{self.resource_id}"
     
     def is_active(self, timeout_seconds=300):
         """Check if session is still active (default 5 minutes)"""
-        if not self.last_activity:
-            return False
-        elapsed = (timezone.now() - self.last_activity).total_seconds()
-        return elapsed < timeout_seconds
+        from django.utils import timezone
+        from datetime import timedelta
+        return (timezone.now() - self.last_activity) < timedelta(seconds=timeout_seconds)
     
-    def update_activity(self):
-        """Update last activity timestamp"""
-        self.last_activity = timezone.now()
-        self.save(update_fields=['last_activity'])
+    def __str__(self):
+        return f"{self.user.username} editing {self.resource_type} #{self.resource_id}"
