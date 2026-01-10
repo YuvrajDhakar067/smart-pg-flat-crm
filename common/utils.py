@@ -45,13 +45,50 @@ def get_site_settings():
 
 
 def get_content_block(key, default=""):
-    """Get content block by key"""
+    """Get content block by key - handles missing fields gracefully"""
     try:
-        block = ContentBlock.objects.get(key=key, is_active=True)
+        from django.db import connection
+        
+        # Check if image column exists
+        has_image_field = False
+        try:
+            if 'postgresql' in connection.vendor:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name='common_contentblock' 
+                        AND column_name='image'
+                    """)
+                    has_image_field = cursor.fetchone() is not None
+            elif 'sqlite' in connection.vendor:
+                with connection.cursor() as cursor:
+                    cursor.execute("PRAGMA table_info(common_contentblock)")
+                    columns = [row[1] for row in cursor.fetchall()]
+                    has_image_field = 'image' in columns
+        except Exception:
+            pass
+        
+        # Try to get the block, deferring image field if it doesn't exist
+        if has_image_field:
+            block = ContentBlock.objects.get(key=key, is_active=True)
+        else:
+            # Use defer to avoid loading image field if it doesn't exist
+            try:
+                block = ContentBlock.objects.defer('image', 'video_url').get(key=key, is_active=True)
+            except Exception:
+                # If defer fails, try without it
+                block = ContentBlock.objects.get(key=key, is_active=True)
+        
         return block.content
     except ContentBlock.DoesNotExist:
         return default
     except Exception as e:
+        error_msg = str(e).lower()
+        if 'does not exist' in error_msg or 'no such column' in error_msg or 'undefinedcolumn' in error_msg:
+            # Missing column - return default gracefully
+            logger.warning(f"Content block {key} column missing (migration may be pending): {e}")
+            return default
         logger.error(f"Error loading content block {key}: {e}")
         return default
 

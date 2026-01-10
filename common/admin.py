@@ -77,14 +77,14 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         if self._field_exists('max_properties_per_owner'):
             base_fieldsets.append(('⚠️ Property Limits (IMPORTANT)', {
                 'fields': ('max_properties_per_owner',),
-                'description': 'Set the maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. This limit is enforced when owners try to add new properties.'
+                'description': 'Set the maximum number of properties (buildings) each owner can add. Set to 0 for unlimited. ⚠️ IMPORTANT: This limit is PER OWNER (PER ACCOUNT), not global. Each owner has their own independent limit. This limit is enforced when owners try to add new properties.'
             }))
         
         # Add Manager Limits if field exists
         if self._field_exists('max_managers_per_owner'):
             base_fieldsets.append(('⚠️ Manager Limits (IMPORTANT)', {
                 'fields': ('max_managers_per_owner',),
-                'description': 'Set the maximum number of managers each owner can create. Set to 0 for unlimited. This limit is enforced when owners try to add new managers.'
+                'description': 'Set the maximum number of managers each owner can create. Set to 0 for unlimited. ⚠️ IMPORTANT: This limit is PER OWNER (PER ACCOUNT), not global. Each owner has their own independent limit. This limit is enforced when owners try to add new managers.'
             }))
         
         # Add About & Contact fields (check if they exist)
@@ -206,10 +206,68 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(ContentBlock)
 class ContentBlockAdmin(admin.ModelAdmin):
+    """Content Block Admin - handles missing fields gracefully"""
+    
+    def _field_exists(self, field_name):
+        """Check if a field exists in the database"""
+        try:
+            from django.db import connection
+            if 'sqlite' in connection.vendor:
+                cursor = connection.cursor()
+                cursor.execute("PRAGMA table_info(common_contentblock)")
+                columns = [row[1] for row in cursor.fetchall()]
+                return field_name in columns
+            elif 'postgresql' in connection.vendor:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name='common_contentblock' 
+                        AND column_name=%s
+                    """, [field_name])
+                    return cursor.fetchone() is not None
+        except Exception:
+            return False
+        return False
+    
+    def get_list_display(self, request):
+        """Dynamically get list_display based on available fields"""
+        base_fields = ['key', 'block_type', 'title', 'is_active', 'order']
+        return base_fields
+    
+    def get_fieldsets(self, request, obj=None):
+        """Dynamically get fieldsets, only including fields that exist"""
+        base_fieldsets = [
+            ('Basic Information', {
+                'fields': ('key', 'block_type', 'title', 'content', 'is_active', 'order')
+            }),
+        ]
+        
+        # Add image and video fields if they exist
+        media_fields = []
+        if self._field_exists('image'):
+            media_fields.append('image')
+        if self._field_exists('video_url'):
+            media_fields.append('video_url')
+        
+        if media_fields:
+            base_fieldsets.append(('Media', {
+                'fields': tuple(media_fields),
+                'description': 'Image and video fields (if migration has been applied)'
+            }))
+        
+        base_fieldsets.append(('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }))
+        
+        return base_fieldsets
+    
     list_display = ['key', 'block_type', 'title', 'is_active', 'order']
     list_filter = ['block_type', 'is_active']
     search_fields = ['key', 'title', 'content']
     list_editable = ['is_active', 'order']
+    readonly_fields = ['created_at', 'updated_at']
 
 
 # StatusLabel and NotificationTemplate kept in models but not registered in admin
